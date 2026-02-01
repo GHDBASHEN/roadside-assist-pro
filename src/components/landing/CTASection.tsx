@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { MapPin, Wrench } from "@/components/icons/AppIcons";
 
@@ -21,19 +22,23 @@ const CTASection = () => {
             <span className="text-transparent bg-clip-text bg-gradient-primary">Confidence?</span>
           </h2>
           <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Download MechGo today and never worry about breakdowns again. 
+            Download MechGo today and never worry about breakdowns again.
             Help is always just a tap away.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button variant="hero" size="xl">
-              <MapPin className="w-5 h-5" />
-              Get Help Now
-            </Button>
-            <Button variant="outline" size="xl">
-              <Wrench className="w-5 h-5" />
-              Become a Mechanic
-            </Button>
+            <Link to="/register">
+              <Button variant="hero" size="xl">
+                <MapPin className="w-5 h-5" />
+                Get Help Now
+              </Button>
+            </Link>
+            <Link to="/register">
+              <Button variant="outline" size="xl">
+                <Wrench className="w-5 h-5" />
+                Become a Mechanic
+              </Button>
+            </Link>
           </div>
 
           {/* App Store Badges */}

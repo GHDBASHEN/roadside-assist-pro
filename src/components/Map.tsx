@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useState } from 'react';
 import L from 'leaflet';
@@ -11,6 +11,14 @@ L.Icon.Default.mergeOptions({
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
+
+const MapUpdater = ({ center }: { center: [number, number] }) => {
+    const map = useMap();
+    useEffect(() => {
+        map.flyTo(center, 13);
+    }, [center, map]);
+    return null;
+};
 
 const Map = ({ center, markers }: { center: [number, number], markers?: { id: string, lat: number, lng: number, title: string }[] }) => {
     return (
@@ -29,6 +37,7 @@ const Map = ({ center, markers }: { center: [number, number], markers?: { id: st
                     <Popup>{marker.title}</Popup>
                 </Marker>
             ))}
+            <MapUpdater center={center} />
         </MapContainer>
     );
 };

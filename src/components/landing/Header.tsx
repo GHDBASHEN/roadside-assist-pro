@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Wrench } from "@/components/icons/AppIcons";
@@ -18,8 +19,8 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <motion.a 
-            href="/" 
+          <motion.a
+            href="/"
             className="flex items-center gap-2"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -48,14 +49,18 @@ const Header = () => {
           </nav>
 
           {/* Desktop CTA */}
-          <motion.div 
+          <motion.div
             className="hidden md:flex items-center gap-3"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Button variant="ghost" size="sm">Sign In</Button>
-            <Button variant="hero" size="sm">Get Started</Button>
+            <Link to="/login">
+              <Button variant="ghost" size="sm">Sign In</Button>
+            </Link>
+            <Link to="/register">
+              <Button variant="hero" size="sm">Get Started</Button>
+            </Link>
           </motion.div>
 
           {/* Mobile Menu Toggle */}
@@ -89,8 +94,12 @@ const Header = () => {
                 </a>
               ))}
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
-                <Button variant="outline" className="w-full">Sign In</Button>
-                <Button variant="hero" className="w-full">Get Started</Button>
+                <Link to="/login" onClick={() => setIsMenuOpen(false)}>
+                  <Button variant="outline" className="w-full">Sign In</Button>
+                </Link>
+                <Link to="/register" onClick={() => setIsMenuOpen(false)}>
+                  <Button variant="hero" className="w-full">Get Started</Button>
+                </Link>
               </div>
             </div>
           </motion.div>

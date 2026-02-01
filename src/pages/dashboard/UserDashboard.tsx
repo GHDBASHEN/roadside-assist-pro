@@ -10,6 +10,7 @@ import Chat from "@/components/Chat";
 import GPSImporter from "@/components/GPSImporter";
 import api from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const UserDashboard = () => {
     const navigate = useNavigate();
@@ -136,18 +137,20 @@ const UserDashboard = () => {
                 {/* Map Area */}
                 <main className="flex-1 relative flex flex-col">
                     <div className="flex-1 relative">
-                        <Map
-                            center={center}
-                            markers={bookings
-                                .filter(b => b.mechanic && b.mechanic.location && (b.status === 'accepted' || b.status === 'pending'))
-                                .map(b => ({
-                                    id: b.mechanic._id,
-                                    lat: b.mechanic.location.coordinates[1],
-                                    lng: b.mechanic.location.coordinates[0],
-                                    title: `Mechanic: ${b.mechanic.name}`
-                                }))
-                            }
-                        />
+                        <ErrorBoundary>
+                            <Map
+                                center={center}
+                                markers={Array.isArray(bookings) ? bookings
+                                    .filter(b => b.mechanic && b.mechanic.location && (b.status === 'accepted' || b.status === 'pending'))
+                                    .map(b => ({
+                                        id: b.mechanic._id,
+                                        lat: b.mechanic.location.coordinates[1],
+                                        lng: b.mechanic.location.coordinates[0],
+                                        title: `Mechanic: ${b.mechanic.name}`
+                                    })) : []
+                                }
+                            />
+                        </ErrorBoundary>
                     </div>
                 </main>
             </div>

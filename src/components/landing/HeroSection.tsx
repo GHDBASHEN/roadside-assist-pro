@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { MapPin, Zap, Shield } from "@/components/icons/AppIcons";
 
@@ -8,7 +9,7 @@ const HeroSection = () => {
       {/* Background Effects */}
       <div className="absolute inset-0 bg-gradient-hero" />
       <div className="absolute inset-0 bg-gradient-glow opacity-50" />
-      
+
       {/* Animated Grid */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{
@@ -67,7 +68,7 @@ const HeroSection = () => {
               transition={{ delay: 0.4 }}
               className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0"
             >
-              Connect with certified mechanics in minutes. From flat tires to engine trouble, 
+              Connect with certified mechanics in minutes. From flat tires to engine trouble,
               get professional help delivered to your location with real-time tracking.
             </motion.p>
 
@@ -77,13 +78,17 @@ const HeroSection = () => {
               transition={{ delay: 0.5 }}
               className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12"
             >
-              <Button variant="hero" size="xl">
-                <MapPin className="w-5 h-5" />
-                Get Help Now
-              </Button>
-              <Button variant="outline" size="xl">
-                Join as Mechanic
-              </Button>
+              <Link to="/register">
+                <Button variant="hero" size="xl">
+                  <MapPin className="w-5 h-5" />
+                  Get Help Now
+                </Button>
+              </Link>
+              <Link to="/register">
+                <Button variant="outline" size="xl">
+                  Join as Mechanic
+                </Button>
+              </Link>
             </motion.div>
 
             {/* Trust Indicators */}
@@ -132,7 +137,7 @@ const PhoneMockup = () => {
       <div className="relative w-[280px] md:w-[320px] h-[580px] md:h-[640px] bg-card rounded-[3rem] border-4 border-border shadow-2xl overflow-hidden">
         {/* Notch */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-background rounded-b-2xl z-10" />
-        
+
         {/* Screen Content */}
         <div className="absolute inset-2 rounded-[2.5rem] overflow-hidden bg-background">
           {/* Status Bar */}
@@ -153,7 +158,7 @@ const PhoneMockup = () => {
                 backgroundSize: 'cover'
               }} />
             </div>
-            
+
             {/* User Location Pin */}
             <motion.div
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
@@ -183,7 +188,7 @@ const PhoneMockup = () => {
           <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl p-4 space-y-4">
             {/* Handle */}
             <div className="w-12 h-1 bg-border rounded-full mx-auto" />
-            
+
             {/* Mechanic Card */}
             <div className="flex items-center gap-3 p-3 bg-secondary rounded-xl">
               <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-xl">

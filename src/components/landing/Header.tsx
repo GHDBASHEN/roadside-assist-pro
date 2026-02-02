@@ -1,11 +1,36 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Wrench } from "@/components/icons/AppIcons";
+import { Menu, X } from "@/components/icons/AppIcons";
+import api from "@/lib/api";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const res = await api.get('/auth');
+          setUser(res.data);
+        } catch (err) {
+          console.error("Failed to fetch user", err);
+          // Optional: localStorage.removeItem("token"); 
+        }
+      }
+    };
+    checkAuth();
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setUser(null);
+    navigate("/");
+  };
 
   const navItems = [
     { label: "Features", href: "#features" },
@@ -53,12 +78,26 @@ const Header = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Link to="/login">
-              <Button variant="ghost" size="sm">Sign In</Button>
-            </Link>
-            <Link to="/register">
-              <Button variant="hero" size="sm">Get Started</Button>
-            </Link>
+            {user ? (
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Welcome, <span className="text-foreground">{user.name}</span>
+                </span>
+                <Link to={user.role === 'mechanic' ? "/mechanic-dashboard" : "/user-dashboard"}>
+                  <Button variant="hero" size="sm">Dashboard</Button>
+                </Link>
+                <Button variant="ghost" size="sm" onClick={handleLogout}>Logout</Button>
+              </div>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost" size="sm">Sign In</Button>
+                </Link>
+                <Link to="/register">
+                  <Button variant="hero" size="sm">Get Started</Button>
+                </Link>
+              </>
+            )}
           </motion.div>
 
           {/* Mobile Menu Toggle */}
@@ -92,12 +131,26 @@ const Header = () => {
                 </a>
               ))}
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
-                <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-                  <Button variant="outline" className="w-full">Sign In</Button>
-                </Link>
-                <Link to="/register" onClick={() => setIsMenuOpen(false)}>
-                  <Button variant="hero" className="w-full">Get Started</Button>
-                </Link>
+                {user ? (
+                  <>
+                    <div className="py-2 text-sm font-medium text-center text-muted-foreground">
+                      Welcome, <span className="text-foreground">{user.name}</span>
+                    </div>
+                    <Link to={user.role === 'mechanic' ? "/mechanic-dashboard" : "/user-dashboard"} onClick={() => setIsMenuOpen(false)}>
+                      <Button variant="hero" className="w-full">Dashboard</Button>
+                    </Link>
+                    <Button variant="outline" className="w-full" onClick={() => { handleLogout(); setIsMenuOpen(false); }}>Logout</Button>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/login" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant="outline" className="w-full">Sign In</Button>
+                    </Link>
+                    <Link to="/register" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant="hero" className="w-full">Get Started</Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>

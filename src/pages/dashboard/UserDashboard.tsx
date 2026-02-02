@@ -17,6 +17,7 @@ import { Menu } from "lucide-react";
 
 const UserDashboard = () => {
     const navigate = useNavigate();
+    const [userData, setUserData] = useState<any>(null);
     const [serviceType, setServiceType] = useState("");
     const [center, setCenter] = useState<[number, number]>([40.7128, -74.0060]);
     const [availableMechanics, setAvailableMechanics] = useState<any[]>([]);
@@ -31,6 +32,7 @@ const UserDashboard = () => {
             try {
                 // Fetch User Profile for Location
                 const userRes = await api.get('/auth');
+                setUserData(userRes.data);
                 if (userRes.data?.location?.coordinates) {
                     setCenter([userRes.data.location.coordinates[1], userRes.data.location.coordinates[0]]);
                 }
@@ -341,6 +343,9 @@ const UserDashboard = () => {
                         <SheetContent side="left" className="w-[85%] sm:w-[350px] overflow-y-auto pt-10">
                             <SheetHeader>
                                 <SheetTitle className="text-left text-lg font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">AutoMIG</SheetTitle>
+                                <div className="text-sm font-medium text-muted-foreground text-left mt-1">
+                                    Welcome, <span className="text-foreground">{userData?.name || 'User'}</span>
+                                </div>
                             </SheetHeader>
                             <div className="mt-4 pb-10">
                                 <SidebarContent />
@@ -351,7 +356,7 @@ const UserDashboard = () => {
                     <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">AutoMIG</h1>
                 </div>
                 <div className="flex items-center gap-4">
-                    <span className="text-sm text-muted-foreground hidden sm:inline-block">Welcome, User</span>
+                    <span className="text-sm text-muted-foreground hidden sm:inline-block">Welcome, {userData?.name || 'User'}</span>
                     <Button onClick={handleLogout} variant="outline" size="sm" className="border-primary/20 hover:bg-primary/10 hover:text-primary">Logout</Button>
                 </div>
             </header>

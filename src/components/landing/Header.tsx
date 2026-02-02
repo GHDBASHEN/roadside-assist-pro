@@ -29,7 +29,7 @@ const Header = () => {
             <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
               <Wrench className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">MechGo</span>
+            <span className="text-xl font-bold text-foreground">AutoMIG</span>
           </motion.a>
 
           {/* Desktop Navigation */}

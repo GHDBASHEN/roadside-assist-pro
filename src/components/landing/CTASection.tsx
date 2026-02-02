@@ -17,13 +17,9 @@ const CTASection = () => {
           viewport={{ once: true }}
           className="max-w-4xl mx-auto text-center"
         >
-          <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-6">
-            Ready to Hit the Road with{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-primary">Confidence?</span>
-          </h2>
-          <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Download MechGo today and never worry about breakdowns again.
-            Help is always just a tap away.
+          <h2 className="text-3xl md:text-5xl font-bold mb-6 text-foreground">Ready to Get Back on the Road?</h2>
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Join thousands of satisfied drivers and mechanics on AutoMIG today.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">

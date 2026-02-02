@@ -142,7 +142,7 @@ const MechanicDashboard = () => {
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card/60 backdrop-blur-md p-6 rounded-2xl border border-border/50 shadow-lg">
                     <div>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">Mechanic Dashboard</h1>
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">AutoMIG Mechanic</h1>
                         <p className="text-muted-foreground mt-1">Welcome back, <span className="text-foreground font-medium">{mechanicData?.name}</span></p>
                     </div>
                     <div className="flex items-center gap-4">
@@ -188,18 +188,18 @@ const MechanicDashboard = () => {
 
                                     {requests.map(req => (
                                         <div key={req._id} className={`p-5 border rounded-xl transition-all duration-300 ${req.status === 'pending'
-                                                ? 'bg-yellow-500/5 border-yellow-500/20 hover:border-yellow-500/40'
-                                                : req.status === 'accepted'
-                                                    ? 'bg-primary/5 border-primary/20 hover:border-primary/40 shadow-[0_0_10px_rgba(var(--primary),0.1)]'
-                                                    : 'bg-card/40 border-border/40 opacity-70'
+                                            ? 'bg-yellow-500/5 border-yellow-500/20 hover:border-yellow-500/40'
+                                            : req.status === 'accepted'
+                                                ? 'bg-primary/5 border-primary/20 hover:border-primary/40 shadow-[0_0_10px_rgba(var(--primary),0.1)]'
+                                                : 'bg-card/40 border-border/40 opacity-70'
                                             }`}>
                                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                                 <div>
                                                     <div className="flex items-center gap-3 mb-1">
                                                         <h3 className="font-bold text-lg text-foreground">{req.serviceType}</h3>
                                                         <Badge className={`${req.status === 'pending' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' :
-                                                                req.status === 'accepted' ? 'bg-green-600 hover:bg-green-700' :
-                                                                    'bg-secondary'
+                                                            req.status === 'accepted' ? 'bg-green-600 hover:bg-green-700' :
+                                                                'bg-secondary'
                                                             }`}>
                                                             {req.status.toUpperCase()}
                                                         </Badge>

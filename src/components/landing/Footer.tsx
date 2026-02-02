@@ -18,10 +18,10 @@ const Footer = () => {
               <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
                 <Wrench className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold text-foreground">MechGo</span>
+              <span className="text-xl font-bold text-foreground">AutoMIG</span>
             </a>
             <p className="text-muted-foreground text-sm mb-4">
-              Roadside assistance reimagined. Connect with certified mechanics instantly, 
+              Roadside assistance reimagined. Connect with certified mechanics instantly,
               track their arrival, and get back on the road fast.
             </p>
             <div className="flex gap-4">
@@ -57,7 +57,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2024 MechGo. All rights reserved.
+            © 2024 AutoMIG. All rights reserved.
           </p>
           <div className="flex gap-6">
             <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">

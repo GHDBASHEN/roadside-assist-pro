@@ -15,10 +15,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="lg:col-span-2">
             <a href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
-                <Wrench className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold text-foreground">AutoMIG</span>
+              <img src="/AutoMIG.png" alt="AutoMIG Logo" className="h-10 w-auto" />
             </a>
             <p className="text-muted-foreground text-sm mb-4">
               Roadside assistance reimagined. Connect with certified mechanics instantly,

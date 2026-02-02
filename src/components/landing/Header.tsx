@@ -26,9 +26,7 @@ const Header = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
-              <Wrench className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <img src="/AutoMIG.png" alt="AutoMIG Logo" className="h-14 w-auto" />
             <span className="text-xl font-bold text-foreground">AutoMIG</span>
           </motion.a>
 

@@ -37,29 +37,19 @@ const CTASection = () => {
             </Link>
           </div>
 
-          {/* App Store Badges */}
-          <div className="flex gap-4 justify-center">
+          {/* Web App Accessibility */}
+          {/* <div className="flex gap-4 justify-center">
             <motion.div
               whileHover={{ scale: 1.05 }}
-              className="bg-card border border-border rounded-xl px-6 py-3 flex items-center gap-3 cursor-pointer"
+              className="bg-card border border-border rounded-xl px-6 py-3 flex items-center gap-3 cursor-default"
             >
-              <div className="text-2xl">🍎</div>
+              <div className="text-2xl"></div>
               <div className="text-left">
-                <p className="text-[10px] text-muted-foreground">Download on the</p>
-                <p className="text-sm font-semibold text-foreground">App Store</p>
+                <p className="text-[10px] text-muted-foreground">Accessible on any device</p>
+                <p className="text-sm font-semibold text-foreground">Web Application</p>
               </div>
             </motion.div>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="bg-card border border-border rounded-xl px-6 py-3 flex items-center gap-3 cursor-pointer"
-            >
-              <div className="text-2xl">▶️</div>
-              <div className="text-left">
-                <p className="text-[10px] text-muted-foreground">Get it on</p>
-                <p className="text-sm font-semibold text-foreground">Google Play</p>
-              </div>
-            </motion.div>
-          </div>
+          </div> */}
         </motion.div>
       </div>
     </section>

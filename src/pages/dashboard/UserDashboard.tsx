@@ -4,24 +4,48 @@ import Map from "@/components/Map";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import Chat from "@/components/Chat";
 import GPSImporter from "@/components/GPSImporter";
 import api from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
+import { getDistance } from 'geolib';
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 const UserDashboard = () => {
     const navigate = useNavigate();
     const [serviceType, setServiceType] = useState("");
     const [center, setCenter] = useState<[number, number]>([40.7128, -74.0060]);
+    const [availableMechanics, setAvailableMechanics] = useState<any[]>([]);
+    const [selectedMechanic, setSelectedMechanic] = useState<string | null>(null);
     const [bookings, setBookings] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         fetchBookings();
     }, []);
+
+    useEffect(() => {
+        if (center) {
+            fetchMechanics();
+        }
+    }, [center]);
+
+    const fetchMechanics = async () => {
+        try {
+            const res = await api.get('/mechanics', {
+                params: {
+                    lat: center[0],
+                    lng: center[1],
+                    dist: 50 // 50km radius
+                }
+            });
+            setAvailableMechanics(res.data);
+        } catch (err) {
+            console.error("Failed to fetch mechanics", err);
+        }
+    };
 
     const fetchBookings = async () => {
         try {
@@ -49,9 +73,11 @@ const UserDashboard = () => {
             await api.post('/bookings', {
                 serviceType,
                 location: { latitude: center[0], longitude: center[1] },
-                description: `Need help with ${serviceType}`
+                description: `Need help with ${serviceType}`,
+                mechanicId: selectedMechanic // Optional: target specific mechanic
             });
-            toast.success(`Request for ${serviceType} sent!`);
+            toast.success(selectedMechanic ? "Request sent to mechanic!" : `Request for ${serviceType} sent!`);
+            setSelectedMechanic(null);
             fetchBookings();
         } catch (err) {
             console.error(err);
@@ -61,35 +87,178 @@ const UserDashboard = () => {
         }
     };
 
-    const handleLocationUpdate = (location: { latitude: number; longitude: number }) => {
+    const handleLocationUpdate = async (location: { latitude: number; longitude: number }) => {
         setCenter([location.latitude, location.longitude]);
-        // Ideally we would also update user profile location here via API if we want "User Tracking"
+
+        // Push location to server for tracking
+        try {
+            await api.put('/users/location', {
+                latitude: location.latitude,
+                longitude: location.longitude
+            });
+        } catch (err) {
+            console.error("Failed to update location on server", err);
+        }
     };
 
+    // Poll for booking updates every 5 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchBookings();
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Combine booking markers (tracking) and available mechanics markers (discovery)
+    const mapMarkers = useMemo(() => {
+        const bookingMarkers = Array.isArray(bookings) ? bookings
+            .filter(b => b.mechanic && b.mechanic.location && (b.status === 'accepted' || b.status === 'pending'))
+            .map(b => ({
+                id: b.mechanic._id,
+                lat: b.mechanic.location.coordinates[1],
+                lng: b.mechanic.location.coordinates[0],
+                title: `Mechanic: ${b.mechanic.name} (${b.status})`,
+                type: 'booking'
+            })) : [];
+
+        const mechanicMarkers = availableMechanics.map(m => ({
+            id: m._id,
+            lat: m.location.coordinates[1],
+            lng: m.location.coordinates[0],
+            title: `Available: ${m.name}`,
+            type: 'available'
+        }));
+
+        return [...bookingMarkers, ...mechanicMarkers];
+        return [...bookingMarkers, ...mechanicMarkers];
+    }, [bookings, availableMechanics]);
+
+    const selectedMechanicData = useMemo(() =>
+        availableMechanics.find(m => m._id === selectedMechanic),
+        [availableMechanics, selectedMechanic]
+    );
+
     return (
-        <div className="flex h-screen flex-col">
-            <header className="flex justify-between items-center p-4 border-b bg-white shadow-sm z-10">
-                <h1 className="text-2xl font-bold text-blue-600">Roadside Assist</h1>
+        <div className="flex h-screen flex-col bg-background text-foreground">
+            <header className="flex justify-between items-center p-4 border-b border-border bg-card/80 backdrop-blur-sm z-10 sticky top-0">
+                <div className="flex items-center gap-2">
+                    {/* Add logo icon if available, otherwise just text */}
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">Roadside Assist</h1>
+                </div>
                 <div className="flex items-center gap-4">
-                    <span className="text-sm text-gray-600">Welcome, User</span>
-                    <Button onClick={handleLogout} variant="outline" size="sm">Logout</Button>
+                    <span className="text-sm text-muted-foreground hidden sm:inline-block">Welcome, User</span>
+                    <Button onClick={handleLogout} variant="outline" size="sm" className="border-primary/20 hover:bg-primary/10 hover:text-primary">Logout</Button>
                 </div>
             </header>
 
-            <div className="flex flex-1 overflow-hidden">
-                {/* Sidebar Controls */}
-                <aside className="w-96 p-4 bg-gray-50 border-r overflow-y-auto z-10 flex flex-col gap-4">
-                    <GPSImporter onLocationUpdate={handleLocationUpdate} />
+            <div className="flex flex-1 overflow-hidden relative">
+                {/* Background Effects */}
+                <div className="absolute inset-0 pointer-events-none z-0">
+                    <div className="absolute inset-0 bg-gradient-hero opacity-50" />
+                    <div className="absolute top-0 left-0 w-full h-[500px] bg-primary/5 blur-[100px] opacity-20" />
+                </div>
 
-                    <Card>
+                {/* Sidebar Controls */}
+                <aside className="w-96 p-4 bg-card/50 backdrop-blur-sm border-r border-border/50 overflow-y-auto z-10 flex flex-col gap-4 shadow-xl">
+                    <GPSImporter
+                        onLocationUpdate={handleLocationUpdate}
+                        currentLocation={{ latitude: center[0], longitude: center[1] }}
+                    />
+
+                    {/* Nearby Mechanics List */}
+                    <Card className="bg-card/80 backdrop-blur border-border/50 shadow-lg">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-lg text-foreground flex justify-between items-center">
+                                Nearby Mechanics
+                                <Badge variant="secondary" className="text-xs">{availableMechanics.length} found</Badge>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2 max-h-60 overflow-y-auto px-2">
+                            {availableMechanics.length === 0 ? (
+                                <p className="text-sm text-muted-foreground text-center py-4">No mechanics found nearby.</p>
+                            ) : (
+                                availableMechanics
+                                    .map(m => ({
+                                        ...m,
+                                        distance: getDistance(
+                                            { latitude: center[0], longitude: center[1] },
+                                            { latitude: m.location.coordinates[1], longitude: m.location.coordinates[0] }
+                                        )
+                                    }))
+                                    .sort((a: any, b: any) => a.distance - b.distance)
+                                    .map((mech: any) => (
+                                        <div
+                                            key={mech._id}
+                                            onClick={() => {
+                                                setSelectedMechanic(mech._id);
+                                                toast.success(`Selected ${mech.name}`);
+                                            }}
+                                            className={`p-3 rounded-lg border cursor-pointer transition-all hover:bg-primary/5 ${selectedMechanic === mech._id ? 'border-primary bg-primary/10 shadow-[0_0_10px_rgba(var(--primary),0.3)]' : 'border-border/40 bg-card/50'}`}
+                                        >
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h4 className="font-semibold text-sm text-foreground">{mech.name}</h4>
+                                                    <p className="text-xs text-muted-foreground">{mech.specialties?.join(', ') || 'General'}</p>
+                                                </div>
+                                                <Badge variant="outline" className="text-[10px] whitespace-nowrap bg-background/50">
+                                                    {(mech.distance / 1000).toFixed(1)} km
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    ))
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-card/80 backdrop-blur border-border/50 shadow-lg">
                         <CardHeader>
-                            <CardTitle>Request Assistance</CardTitle>
+                            <CardTitle className="text-foreground">Request Assistance</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {selectedMechanicData && (
+                                <div className="bg-secondary/50 p-4 rounded-xl border border-primary/20 mb-4 space-y-3">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h4 className="font-bold text-foreground">{selectedMechanicData.name}</h4>
+                                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                <span className="text-yellow-500">★ 4.8</span>
+                                                <span>•</span>
+                                                <span>{selectedMechanicData.specialties?.join(', ') || 'General Mechanic'}</span>
+                                            </div>
+                                        </div>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedMechanic(null)}>
+                                            <span className="sr-only">Close</span>
+                                            <span className="text-lg">×</span>
+                                        </Button>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <span>📞 {selectedMechanicData.phone || 'No phone number'}</span>
+                                    </div>
+
+                                    <div className="flex gap-2 pt-1">
+                                        <Button
+                                            size="sm"
+                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white border-none"
+                                            onClick={() => {
+                                                if (selectedMechanicData.phone) {
+                                                    window.location.href = `tel:${selectedMechanicData.phone}`;
+                                                } else {
+                                                    toast.error("No phone number available");
+                                                }
+                                            }}
+                                        >
+                                            Call
+                                        </Button>
+                                        <Button size="sm" variant="outline" className="flex-1">Chat</Button>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="space-y-2">
-                                <Label>Service Type</Label>
+                                <Label className="text-muted-foreground">Service Type</Label>
                                 <Select onValueChange={setServiceType}>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="bg-background/50 border-input">
                                         <SelectValue placeholder="Select issue" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -104,28 +273,33 @@ const UserDashboard = () => {
                             </div>
 
                             <div className="pt-2">
-                                <Button className="w-full" size="lg" onClick={handleRequest} disabled={loading}>
-                                    {loading ? 'Requesting...' : 'Request Help Now'}
+                                <Button className="w-full bg-gradient-primary hover:opacity-90 transition-opacity text-primary-foreground font-semibold shadow-glow" size="lg" onClick={handleRequest} disabled={loading}>
+                                    {loading ? 'Requesting...' : (selectedMechanic ? 'Request This Mechanic' : 'Request Help Now')}
                                 </Button>
                             </div>
                         </CardContent>
                     </Card>
 
                     <div className="mt-2">
-                        <h3 className="font-semibold mb-2">Booking History</h3>
+                        <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
+                            <span className="w-1 h-4 bg-primary rounded-full"></span>
+                            Booking History
+                        </h3>
                         {bookings.length === 0 ? (
-                            <div className="text-sm text-gray-500">No active bookings.</div>
+                            <div className="text-sm text-muted-foreground bg-card/50 p-4 rounded-lg border border-border/50 text-center">
+                                No active bookings.
+                            </div>
                         ) : (
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                                 {bookings.map(b => (
-                                    <div key={b._id} className="bg-white p-3 rounded border text-sm">
-                                        <div className="flex justify-between font-semibold">
-                                            <span>{b.serviceType}</span>
-                                            <Badge variant={b.status === 'completed' ? 'secondary' : 'default'} className="text-xs">{b.status}</Badge>
+                                    <div key={b._id} className="bg-card/90 p-4 rounded-xl border border-border/50 shadow-sm hover:border-primary/30 transition-colors">
+                                        <div className="flex justify-between font-semibold mb-1">
+                                            <span className="text-foreground">{b.serviceType}</span>
+                                            <Badge variant={b.status === 'completed' ? 'secondary' : 'default'} className="text-xs uppercase tracking-wider">{b.status}</Badge>
                                         </div>
-                                        <div className="text-gray-500 text-xs mt-1">
-                                            {new Date(b.date).toLocaleDateString()}
-                                            {b.mechanic && <span> • Mechanic: {b.mechanic.name}</span>}
+                                        <div className="text-muted-foreground text-xs flex flex-col gap-1">
+                                            <span>{new Date(b.date).toLocaleDateString()}</span>
+                                            {b.mechanic && <span className="text-primary/90 font-medium"> • Mechanic: {b.mechanic.name}</span>}
                                         </div>
                                     </div>
                                 ))}
@@ -135,20 +309,22 @@ const UserDashboard = () => {
                 </aside>
 
                 {/* Map Area */}
-                <main className="flex-1 relative flex flex-col">
-                    <div className="flex-1 relative">
+                <main className="flex-1 relative flex flex-col z-0">
+                    <div className="flex-1 relative shadow-inner">
                         <ErrorBoundary>
                             <Map
                                 center={center}
-                                markers={Array.isArray(bookings) ? bookings
-                                    .filter(b => b.mechanic && b.mechanic.location && (b.status === 'accepted' || b.status === 'pending'))
-                                    .map(b => ({
-                                        id: b.mechanic._id,
-                                        lat: b.mechanic.location.coordinates[1],
-                                        lng: b.mechanic.location.coordinates[0],
-                                        title: `Mechanic: ${b.mechanic.name}`
-                                    })) : []
-                                }
+                                markers={mapMarkers}
+                                onLocationSelect={(lat, lng) => handleLocationUpdate({ latitude: lat, longitude: lng })}
+                                enableLocationSelection={true}
+                                onMarkerClick={(id) => {
+                                    // Check if it's an available mechanic
+                                    const mechanic = availableMechanics.find(m => m._id === id);
+                                    if (mechanic) {
+                                        setSelectedMechanic(mechanic._id);
+                                        toast.info(`Selected mechanic: ${mechanic.name}`);
+                                    }
+                                }}
                             />
                         </ErrorBoundary>
                     </div>

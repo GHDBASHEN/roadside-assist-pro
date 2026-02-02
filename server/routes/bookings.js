@@ -8,10 +8,10 @@ const User = require('../models/User');
 // @desc    Create a service request
 // @access  Private
 router.post('/', auth, async (req, res) => {
-    const { serviceType, location, description } = req.body;
+    const { serviceType, location, description, mechanicId } = req.body;
 
     try {
-        const newBooking = new Booking({
+        const bookingData = {
             user: req.user.id,
             serviceType,
             location: {
@@ -21,7 +21,13 @@ router.post('/', auth, async (req, res) => {
                     : [0, 0]
             },
             status: 'pending'
-        });
+        };
+
+        if (mechanicId) {
+            bookingData.mechanic = mechanicId;
+        }
+
+        const newBooking = new Booking(bookingData);
 
         const booking = await newBooking.save();
         res.json(booking);
@@ -41,14 +47,15 @@ router.get('/', auth, async (req, res) => {
 
         let bookings;
         if (user.role === 'mechanic') {
-            // Mechanics see requests available to them (for now, pending ones or ones assigned to them)
-            // Simplified: Mechanics see all pending requests + requests assigned to them
+            // Mechanics see:
+            // 1. Requests assigned to them (any status)
+            // 2. Unassigned pending requests (broadcast)
             bookings = await Booking.find({
                 $or: [
-                    { status: 'pending' },
-                    { mechanic: req.user.id }
+                    { mechanic: req.user.id },
+                    { status: 'pending', mechanic: null }
                 ]
-            }).populate('user', ['name', 'email']).sort({ date: -1 });
+            }).populate('user', ['name', 'email', 'location']).sort({ date: -1 });
 
         } else {
             // Users see their own bookings

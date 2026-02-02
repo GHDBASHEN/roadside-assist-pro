@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -8,12 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import GPSImporter from "@/components/GPSImporter";
+import Map from "@/components/Map";
 
 const MechanicDashboard = () => {
     const navigate = useNavigate();
     const [isAvailable, setIsAvailable] = useState(false);
     const [mechanicData, setMechanicData] = useState<any>(null);
     const [requests, setRequests] = useState<any[]>([]);
+    const [center, setCenter] = useState<[number, number]>([40.7128, -74.0060]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -26,6 +28,11 @@ const MechanicDashboard = () => {
                 setMechanicData(profileRes.data);
                 setIsAvailable(profileRes.data.isAvailable);
                 setRequests(bookingsRes.data);
+
+                // Initialize center if mechanic has location
+                if (profileRes.data.location?.coordinates) {
+                    setCenter([profileRes.data.location.coordinates[1], profileRes.data.location.coordinates[0]]);
+                }
             } catch (err) {
                 console.error(err);
                 toast.error("Failed to load dashboard data");
@@ -54,7 +61,7 @@ const MechanicDashboard = () => {
     const handleLocationUpdate = async (location: { latitude: number; longitude: number }) => {
         try {
             await api.put('/mechanics/location', location);
-            // toast success handled in generic way or inside component, but we can double check
+            setCenter([location.latitude, location.longitude]);
         } catch (err) {
             console.error(err);
             toast.error("Failed to update location on server");
@@ -88,11 +95,34 @@ const MechanicDashboard = () => {
         }
     }
 
+    // Prepare markers for the map
+    const mapMarkers = useMemo(() => {
+        const markers: any[] = [];
+
+        // Add active request user locations
+        requests.forEach(req => {
+            if ((req.status === 'accepted' || req.status === 'pending') && req.user && req.user.location) {
+                markers.push({
+                    id: req.user._id,
+                    lat: req.user.location.coordinates[1],
+                    lng: req.user.location.coordinates[0],
+                    title: `User: ${req.user.name} (${req.serviceType})`,
+                    type: 'user'
+                });
+            }
+        });
+
+        return markers;
+    }, [requests]);
+
 
     return (
         <div className="min-h-screen bg-gray-100 p-8">
             <div className="mb-6">
-                <GPSImporter onLocationUpdate={handleLocationUpdate} />
+                <GPSImporter
+                    onLocationUpdate={handleLocationUpdate}
+                    currentLocation={{ latitude: center[0], longitude: center[1] }}
+                />
             </div>
 
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-white p-4 rounded-lg shadow gap-4">
@@ -148,32 +178,44 @@ const MechanicDashboard = () => {
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>My Profile</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <Label className="text-xs text-gray-500 uppercase">Specialties</Label>
-                            <div className="flex flex-wrap gap-2 mt-1">
-                                {mechanicData?.specialties?.map((s: string, i: number) => (
-                                    <Badge key={i} variant="secondary">{s}</Badge>
-                                ))}
-                                {!mechanicData?.specialties?.length && <span className="text-sm text-gray-500">None listed</span>}
-                            </div>
+                <div className="md:col-span-1 space-y-6">
+                    {/* Map for Tracking */}
+                    <Card className="h-96 overflow-hidden flex flex-col">
+                        <CardHeader className="py-3">
+                            <CardTitle className="text-sm uppercase text-gray-500">Live Tracking</CardTitle>
+                        </CardHeader>
+                        <div className="flex-1 relative">
+                            <Map center={center} markers={mapMarkers} />
                         </div>
-                        <div>
-                            <Label className="text-xs text-gray-500 uppercase">Certifications</Label>
-                            <div className="flex flex-wrap gap-2 mt-1">
-                                {mechanicData?.certifications?.map((c: string, i: number) => (
-                                    <Badge key={i} variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">{c}</Badge>
-                                ))}
-                                {!mechanicData?.certifications?.length && <span className="text-sm text-gray-500">None listed</span>}
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>My Profile</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <Label className="text-xs text-gray-500 uppercase">Specialties</Label>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                    {mechanicData?.specialties?.map((s: string, i: number) => (
+                                        <Badge key={i} variant="secondary">{s}</Badge>
+                                    ))}
+                                    {!mechanicData?.specialties?.length && <span className="text-sm text-gray-500">None listed</span>}
+                                </div>
                             </div>
-                        </div>
-                        <Button variant="outline" className="w-full text-xs">Edit Profile</Button>
-                    </CardContent>
-                </Card>
+                            <div>
+                                <Label className="text-xs text-gray-500 uppercase">Certifications</Label>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                    {mechanicData?.certifications?.map((c: string, i: number) => (
+                                        <Badge key={i} variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">{c}</Badge>
+                                    ))}
+                                    {!mechanicData?.certifications?.length && <span className="text-sm text-gray-500">None listed</span>}
+                                </div>
+                            </div>
+                            <Button variant="outline" className="w-full text-xs">Edit Profile</Button>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );

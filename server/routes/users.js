@@ -65,4 +65,30 @@ router.post('/', [
     }
 });
 
+// @route   PUT api/users/location
+// @desc    Update user location (for both mechanics and users)
+// @access  Private
+router.put('/location', require('../middleware/auth'), async (req, res) => {
+    const { latitude, longitude } = req.body;
+
+    try {
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        user.location = {
+            type: 'Point',
+            coordinates: [longitude, latitude] // GeoJSON format: [lng, lat]
+        };
+
+        await user.save();
+        res.json(user.location);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
 module.exports = router;

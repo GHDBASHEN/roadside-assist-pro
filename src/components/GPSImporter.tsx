@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -6,11 +6,19 @@ import { toast } from 'sonner';
 
 interface GPSImporterProps {
     onLocationUpdate: (location: { latitude: number; longitude: number }) => void;
+    currentLocation?: { latitude: number; longitude: number };
 }
 
-const GPSImporter = ({ onLocationUpdate }: GPSImporterProps) => {
-    const [latitude, setLatitude] = useState('');
-    const [longitude, setLongitude] = useState('');
+const GPSImporter = ({ onLocationUpdate, currentLocation }: GPSImporterProps) => {
+    const [latitude, setLatitude] = useState(currentLocation?.latitude?.toString() || '');
+    const [longitude, setLongitude] = useState(currentLocation?.longitude?.toString() || '');
+
+    useEffect(() => {
+        if (currentLocation) {
+            setLatitude(currentLocation.latitude.toString());
+            setLongitude(currentLocation.longitude.toString());
+        }
+    }, [currentLocation]);
 
     const handleImport = () => {
         const lat = parseFloat(latitude);
@@ -48,7 +56,7 @@ const GPSImporter = ({ onLocationUpdate }: GPSImporterProps) => {
     };
 
     return (
-        <Card className="w-full mb-4">
+        <Card className="w-full mb-4 bg-card/80 backdrop-blur border-border/50 shadow-lg">
             <CardHeader className="py-3">
                 <CardTitle className="text-sm font-medium">GPS Data Import</CardTitle>
             </CardHeader>

@@ -8,8 +8,26 @@ const User = require('../models/User');
 // @access  Private
 router.get('/', auth, async (req, res) => {
     try {
-        // Simple filter: Role is mechanic and isAvailable is true
-        const mechanics = await User.find({ role: 'mechanic', isAvailable: true }).select('-password');
+        const { lat, lng, dist } = req.query;
+
+        let query = { role: 'mechanic', isAvailable: true };
+
+        if (lat && lng) {
+            // Default distance 10km if not specified
+            const distanceInMeters = (dist || 10) * 1000;
+
+            query.location = {
+                $near: {
+                    $geometry: {
+                        type: "Point",
+                        coordinates: [parseFloat(lng), parseFloat(lat)]
+                    },
+                    $maxDistance: distanceInMeters
+                }
+            };
+        }
+
+        const mechanics = await User.find(query).select('-password');
         res.json(mechanics);
     } catch (err) {
         console.error(err.message);

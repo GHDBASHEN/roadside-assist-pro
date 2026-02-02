@@ -353,7 +353,10 @@ const UserDashboard = () => {
                         </SheetContent>
                     </Sheet>
 
-                    <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">AutoMIG</h1>
+                    <div className="flex items-center gap-2">
+                        <img src="/AutoMIG.png" alt="AutoMIG Logo" className="h-12 w-auto" />
+                        <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">AutoMIG</h1>
+                    </div>
                 </div>
                 <div className="flex items-center gap-4">
                     <span className="text-sm text-muted-foreground hidden sm:inline-block">Welcome, {userData?.name || 'User'}</span>

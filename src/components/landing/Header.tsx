@@ -51,8 +51,8 @@ const Header = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <img src="/AutoMIG.png" alt="AutoMIG Logo" className="h-14 w-auto" />
-            <span className="text-xl font-bold text-foreground">AutoMIG</span>
+            <img src="/AutoMIG.png" alt="AutoMIG Logo" className="h-16 w-auto" />
+            <span className="text-2xl font-bold text-foreground">AutoMIG</span>
           </motion.a>
 
           {/* Desktop Navigation */}

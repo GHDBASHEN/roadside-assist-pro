@@ -15,7 +15,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="lg:col-span-2">
             <a href="/" className="flex items-center gap-2 mb-4">
-              <img src="/AutoMIG.png" alt="AutoMIG Logo" className="h-10 w-auto" />
+              <img src="/AutoMIG.png" alt="AutoMIG Logo" className="h-20 w-auto" />
             </a>
             <p className="text-muted-foreground text-sm mb-4">
               Roadside assistance reimagined. Connect with certified mechanics instantly,

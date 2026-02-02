@@ -18,7 +18,7 @@ router.post('/', [
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, role, specialties, certifications } = req.body;
+    const { name, email, password, phone, role, specialties, certifications } = req.body;
 
     try {
         let user = await User.findOne({ email });
@@ -31,6 +31,7 @@ router.post('/', [
             name,
             email,
             password,
+            phone,
             role,
             specialties: role === 'mechanic' ? specialties : [],
             certifications: role === 'mechanic' ? certifications : []

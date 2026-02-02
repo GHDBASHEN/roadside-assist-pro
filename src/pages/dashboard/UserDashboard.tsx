@@ -12,6 +12,8 @@ import api from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { getDistance } from 'geolib';
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Menu } from "lucide-react";
 
 const UserDashboard = () => {
     const navigate = useNavigate();
@@ -21,6 +23,7 @@ const UserDashboard = () => {
     const [selectedMechanic, setSelectedMechanic] = useState<string | null>(null);
     const [bookings, setBookings] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         fetchBookings();
@@ -79,6 +82,7 @@ const UserDashboard = () => {
             toast.success(selectedMechanic ? "Request sent to mechanic!" : `Request for ${serviceType} sent!`);
             setSelectedMechanic(null);
             fetchBookings();
+            setIsMobileMenuOpen(false); // Close menu on mobile after request
         } catch (err) {
             console.error(err);
             toast.error("Failed to submit request");
@@ -130,7 +134,6 @@ const UserDashboard = () => {
         }));
 
         return [...bookingMarkers, ...mechanicMarkers];
-        return [...bookingMarkers, ...mechanicMarkers];
     }, [bookings, availableMechanics]);
 
     const selectedMechanicData = useMemo(() =>
@@ -138,12 +141,179 @@ const UserDashboard = () => {
         [availableMechanics, selectedMechanic]
     );
 
+    // Reusable Sidebar Content
+    const SidebarContent = () => (
+        <div className="flex flex-col gap-4 h-full">
+            <GPSImporter
+                onLocationUpdate={handleLocationUpdate}
+                currentLocation={{ latitude: center[0], longitude: center[1] }}
+            />
+
+            {/* Nearby Mechanics List */}
+            <Card className="bg-card/80 backdrop-blur border-border/50 shadow-lg flex-shrink-0">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-lg text-foreground flex justify-between items-center">
+                        Nearby Mechanics
+                        <Badge variant="secondary" className="text-xs">{availableMechanics.length} found</Badge>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 max-h-48 overflow-y-auto px-2 custom-scrollbar">
+                    {availableMechanics.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">No mechanics found nearby.</p>
+                    ) : (
+                        availableMechanics
+                            .map(m => ({
+                                ...m,
+                                distance: getDistance(
+                                    { latitude: center[0], longitude: center[1] },
+                                    { latitude: m.location.coordinates[1], longitude: m.location.coordinates[0] }
+                                )
+                            }))
+                            .sort((a: any, b: any) => a.distance - b.distance)
+                            .map((mech: any) => (
+                                <div
+                                    key={mech._id}
+                                    onClick={() => {
+                                        setSelectedMechanic(mech._id);
+                                        toast.success(`Selected ${mech.name}`);
+                                    }}
+                                    className={`p-3 rounded-lg border cursor-pointer transition-all hover:bg-primary/5 ${selectedMechanic === mech._id ? 'border-primary bg-primary/10 shadow-[0_0_10px_rgba(var(--primary),0.3)]' : 'border-border/40 bg-card/50'}`}
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h4 className="font-semibold text-sm text-foreground">{mech.name}</h4>
+                                            <p className="text-xs text-muted-foreground">{mech.specialties?.join(', ') || 'General'}</p>
+                                        </div>
+                                        <Badge variant="outline" className="text-[10px] whitespace-nowrap bg-background/50">
+                                            {(mech.distance / 1000).toFixed(1)} km
+                                        </Badge>
+                                    </div>
+                                </div>
+                            ))
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card className="bg-card/80 backdrop-blur border-border/50 shadow-lg flex-shrink-0">
+                <CardHeader>
+                    <CardTitle className="text-foreground">Request Assistance</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {selectedMechanicData && (
+                        <div className="bg-secondary/50 p-4 rounded-xl border border-primary/20 mb-4 space-y-3">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h4 className="font-bold text-foreground">{selectedMechanicData.name}</h4>
+                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                        <span className="text-yellow-500">★ 4.8</span>
+                                        <span>•</span>
+                                        <span>{selectedMechanicData.specialties?.join(', ') || 'General Mechanic'}</span>
+                                    </div>
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedMechanic(null)}>
+                                    <span className="sr-only">Close</span>
+                                    <span className="text-lg">×</span>
+                                </Button>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span>📞 {selectedMechanicData.phone || 'No phone number'}</span>
+                            </div>
+
+                            <div className="flex gap-2 pt-1">
+                                <Button
+                                    size="sm"
+                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white border-none"
+                                    onClick={() => {
+                                        if (selectedMechanicData.phone) {
+                                            window.location.href = `tel:${selectedMechanicData.phone}`;
+                                        } else {
+                                            toast.error("No phone number available");
+                                        }
+                                    }}
+                                >
+                                    Call
+                                </Button>
+                                <Button size="sm" variant="outline" className="flex-1">Chat</Button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-2">
+                        <Label className="text-muted-foreground">Service Type</Label>
+                        <Select onValueChange={setServiceType}>
+                            <SelectTrigger className="bg-background/50 border-input">
+                                <SelectValue placeholder="Select issue" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Emergency">Emergency Roadside</SelectItem>
+                                <SelectItem value="Full Service">Full Service</SelectItem>
+                                <SelectItem value="Tires">Flat Tire</SelectItem>
+                                <SelectItem value="Battery">Dead Battery</SelectItem>
+                                <SelectItem value="Fuel">Out of Fuel</SelectItem>
+                                <SelectItem value="Lockout">Car Lockout</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="pt-2">
+                        <Button className="w-full bg-gradient-primary hover:opacity-90 transition-opacity text-primary-foreground font-semibold shadow-glow" size="lg" onClick={handleRequest} disabled={loading}>
+                            {loading ? 'Requesting...' : (selectedMechanic ? 'Request This Mechanic' : 'Request Help Now')}
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div className="mt-auto flex-1 overflow-y-auto">
+                <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
+                    <span className="w-1 h-4 bg-primary rounded-full"></span>
+                    Booking History
+                </h3>
+                {bookings.length === 0 ? (
+                    <div className="text-sm text-muted-foreground bg-card/50 p-4 rounded-lg border border-border/50 text-center">
+                        No active bookings.
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {bookings.map(b => (
+                            <div key={b._id} className="bg-card/90 p-4 rounded-xl border border-border/50 shadow-sm hover:border-primary/30 transition-colors">
+                                <div className="flex justify-between font-semibold mb-1">
+                                    <span className="text-foreground">{b.serviceType}</span>
+                                    <Badge variant={b.status === 'completed' ? 'secondary' : 'default'} className="text-xs uppercase tracking-wider">{b.status}</Badge>
+                                </div>
+                                <div className="text-muted-foreground text-xs flex flex-col gap-1">
+                                    <span>{new Date(b.date).toLocaleDateString()}</span>
+                                    {b.mechanic && <span className="text-primary/90 font-medium"> • Mechanic: {b.mechanic.name}</span>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
     return (
         <div className="flex h-screen flex-col bg-background text-foreground">
             <header className="flex justify-between items-center p-4 border-b border-border bg-card/80 backdrop-blur-sm z-10 sticky top-0">
                 <div className="flex items-center gap-2">
-                    {/* Add logo icon if available, otherwise just text */}
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">Roadside Assist</h1>
+                    <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                        <SheetTrigger asChild>
+                            <Button variant="ghost" size="icon" className="md:hidden">
+                                <Menu className="h-6 w-6" />
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="left" className="w-[85%] sm:w-[350px] overflow-y-auto pt-10">
+                            <SheetHeader>
+                                <SheetTitle className="text-left text-lg font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">Roadside Assist</SheetTitle>
+                            </SheetHeader>
+                            <div className="mt-4 pb-10">
+                                <SidebarContent />
+                            </div>
+                        </SheetContent>
+                    </Sheet>
+
+                    <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">Roadside Assist</h1>
                 </div>
                 <div className="flex items-center gap-4">
                     <span className="text-sm text-muted-foreground hidden sm:inline-block">Welcome, User</span>
@@ -158,154 +328,9 @@ const UserDashboard = () => {
                     <div className="absolute top-0 left-0 w-full h-[500px] bg-primary/5 blur-[100px] opacity-20" />
                 </div>
 
-                {/* Sidebar Controls */}
-                <aside className="w-96 p-4 bg-card/50 backdrop-blur-sm border-r border-border/50 overflow-y-auto z-10 flex flex-col gap-4 shadow-xl">
-                    <GPSImporter
-                        onLocationUpdate={handleLocationUpdate}
-                        currentLocation={{ latitude: center[0], longitude: center[1] }}
-                    />
-
-                    {/* Nearby Mechanics List */}
-                    <Card className="bg-card/80 backdrop-blur border-border/50 shadow-lg">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-lg text-foreground flex justify-between items-center">
-                                Nearby Mechanics
-                                <Badge variant="secondary" className="text-xs">{availableMechanics.length} found</Badge>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2 max-h-60 overflow-y-auto px-2">
-                            {availableMechanics.length === 0 ? (
-                                <p className="text-sm text-muted-foreground text-center py-4">No mechanics found nearby.</p>
-                            ) : (
-                                availableMechanics
-                                    .map(m => ({
-                                        ...m,
-                                        distance: getDistance(
-                                            { latitude: center[0], longitude: center[1] },
-                                            { latitude: m.location.coordinates[1], longitude: m.location.coordinates[0] }
-                                        )
-                                    }))
-                                    .sort((a: any, b: any) => a.distance - b.distance)
-                                    .map((mech: any) => (
-                                        <div
-                                            key={mech._id}
-                                            onClick={() => {
-                                                setSelectedMechanic(mech._id);
-                                                toast.success(`Selected ${mech.name}`);
-                                            }}
-                                            className={`p-3 rounded-lg border cursor-pointer transition-all hover:bg-primary/5 ${selectedMechanic === mech._id ? 'border-primary bg-primary/10 shadow-[0_0_10px_rgba(var(--primary),0.3)]' : 'border-border/40 bg-card/50'}`}
-                                        >
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h4 className="font-semibold text-sm text-foreground">{mech.name}</h4>
-                                                    <p className="text-xs text-muted-foreground">{mech.specialties?.join(', ') || 'General'}</p>
-                                                </div>
-                                                <Badge variant="outline" className="text-[10px] whitespace-nowrap bg-background/50">
-                                                    {(mech.distance / 1000).toFixed(1)} km
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                    ))
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <Card className="bg-card/80 backdrop-blur border-border/50 shadow-lg">
-                        <CardHeader>
-                            <CardTitle className="text-foreground">Request Assistance</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {selectedMechanicData && (
-                                <div className="bg-secondary/50 p-4 rounded-xl border border-primary/20 mb-4 space-y-3">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h4 className="font-bold text-foreground">{selectedMechanicData.name}</h4>
-                                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                <span className="text-yellow-500">★ 4.8</span>
-                                                <span>•</span>
-                                                <span>{selectedMechanicData.specialties?.join(', ') || 'General Mechanic'}</span>
-                                            </div>
-                                        </div>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedMechanic(null)}>
-                                            <span className="sr-only">Close</span>
-                                            <span className="text-lg">×</span>
-                                        </Button>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <span>📞 {selectedMechanicData.phone || 'No phone number'}</span>
-                                    </div>
-
-                                    <div className="flex gap-2 pt-1">
-                                        <Button
-                                            size="sm"
-                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white border-none"
-                                            onClick={() => {
-                                                if (selectedMechanicData.phone) {
-                                                    window.location.href = `tel:${selectedMechanicData.phone}`;
-                                                } else {
-                                                    toast.error("No phone number available");
-                                                }
-                                            }}
-                                        >
-                                            Call
-                                        </Button>
-                                        <Button size="sm" variant="outline" className="flex-1">Chat</Button>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="space-y-2">
-                                <Label className="text-muted-foreground">Service Type</Label>
-                                <Select onValueChange={setServiceType}>
-                                    <SelectTrigger className="bg-background/50 border-input">
-                                        <SelectValue placeholder="Select issue" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Emergency">Emergency Roadside</SelectItem>
-                                        <SelectItem value="Full Service">Full Service</SelectItem>
-                                        <SelectItem value="Tires">Flat Tire</SelectItem>
-                                        <SelectItem value="Battery">Dead Battery</SelectItem>
-                                        <SelectItem value="Fuel">Out of Fuel</SelectItem>
-                                        <SelectItem value="Lockout">Car Lockout</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="pt-2">
-                                <Button className="w-full bg-gradient-primary hover:opacity-90 transition-opacity text-primary-foreground font-semibold shadow-glow" size="lg" onClick={handleRequest} disabled={loading}>
-                                    {loading ? 'Requesting...' : (selectedMechanic ? 'Request This Mechanic' : 'Request Help Now')}
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <div className="mt-2">
-                        <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
-                            <span className="w-1 h-4 bg-primary rounded-full"></span>
-                            Booking History
-                        </h3>
-                        {bookings.length === 0 ? (
-                            <div className="text-sm text-muted-foreground bg-card/50 p-4 rounded-lg border border-border/50 text-center">
-                                No active bookings.
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {bookings.map(b => (
-                                    <div key={b._id} className="bg-card/90 p-4 rounded-xl border border-border/50 shadow-sm hover:border-primary/30 transition-colors">
-                                        <div className="flex justify-between font-semibold mb-1">
-                                            <span className="text-foreground">{b.serviceType}</span>
-                                            <Badge variant={b.status === 'completed' ? 'secondary' : 'default'} className="text-xs uppercase tracking-wider">{b.status}</Badge>
-                                        </div>
-                                        <div className="text-muted-foreground text-xs flex flex-col gap-1">
-                                            <span>{new Date(b.date).toLocaleDateString()}</span>
-                                            {b.mechanic && <span className="text-primary/90 font-medium"> • Mechanic: {b.mechanic.name}</span>}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                {/* Sidebar Controls (Desktop) */}
+                <aside className="hidden md:flex w-96 p-4 bg-card/50 backdrop-blur-sm border-r border-border/50 overflow-y-auto z-10 flex-col gap-4 shadow-xl">
+                    <SidebarContent />
                 </aside>
 
                 {/* Map Area */}
@@ -323,6 +348,10 @@ const UserDashboard = () => {
                                     if (mechanic) {
                                         setSelectedMechanic(mechanic._id);
                                         toast.info(`Selected mechanic: ${mechanic.name}`);
+                                        // On mobile, maybe open the sheet?
+                                        if (window.innerWidth < 768) {
+                                            setIsMobileMenuOpen(true);
+                                        }
                                     }
                                 }}
                             />

@@ -27,6 +27,8 @@ const MechanicDashboard = () => {
 
                 setMechanicData(profileRes.data);
                 setIsAvailable(profileRes.data.isAvailable);
+                // Ensure boolean
+                setIsAvailable(!!profileRes.data.isAvailable);
                 setRequests(bookingsRes.data);
 
                 // Initialize center if mechanic has location
@@ -112,109 +114,203 @@ const MechanicDashboard = () => {
             }
         });
 
+        // Add mechanic's own location as a marker? 
+        // Typically the map center pin is enough, but a marker helps.
+        markers.push({
+            id: 'me',
+            lat: center[0],
+            lng: center[1],
+            title: 'My Location',
+            type: 'me'
+        });
+
         return markers;
-    }, [requests]);
+    }, [requests, center]);
 
 
     return (
-        <div className="min-h-screen bg-gray-100 p-8">
-            <div className="mb-6">
-                <GPSImporter
-                    onLocationUpdate={handleLocationUpdate}
-                    currentLocation={{ latitude: center[0], longitude: center[1] }}
-                />
+        <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
+            {/* Background Effects */}
+            <div className="absolute inset-0 pointer-events-none z-0">
+                <div className="absolute inset-0 bg-gradient-hero opacity-80" />
+                <div className="absolute top-0 right-0 w-full h-[500px] bg-primary/5 blur-[100px] opacity-20" />
+                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] opacity-20" />
             </div>
 
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-white p-4 rounded-lg shadow gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Mechanic Dashboard</h1>
-                    <p className="text-gray-500">Welcome back, {mechanicData?.name}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center space-x-2 bg-gray-50 px-4 py-2 rounded-full border">
-                        <Switch id="availability" checked={isAvailable} onCheckedChange={toggleAvailability} />
-                        <Label htmlFor="availability" className={`font-medium ${isAvailable ? "text-green-600" : "text-gray-500"}`}>
-                            {isAvailable ? "Online & Available" : "Offline"}
-                        </Label>
+            <div className="relative z-10 p-6 md:p-8 max-w-7xl mx-auto flex flex-col gap-6">
+
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card/60 backdrop-blur-md p-6 rounded-2xl border border-border/50 shadow-lg">
+                    <div>
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">Mechanic Dashboard</h1>
+                        <p className="text-muted-foreground mt-1">Welcome back, <span className="text-foreground font-medium">{mechanicData?.name}</span></p>
                     </div>
-                    <Button onClick={handleLogout} variant="outline">Logout</Button>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="md:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Active Service Requests</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {requests.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-64 text-gray-400 border-2 border-dashed rounded-lg">
-                                <p>No active requests. Stay online to receive jobs.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {requests.map(req => (
-                                    <div key={req._id} className="p-4 border rounded-lg bg-white shadow-sm flex justify-between items-center">
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-semibold text-lg">{req.serviceType}</h3>
-                                                <Badge>{req.status}</Badge>
-                                            </div>
-                                            <p className="text-sm text-gray-500">User: {req.user?.name || 'Unknown'}</p>
-                                            <p className="text-xs text-gray-400">Date: {new Date(req.date).toLocaleString()}</p>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            {req.status === 'pending' && (
-                                                <Button size="sm" onClick={() => acceptRequest(req._id)}>Accept</Button>
-                                            )}
-                                            {req.status === 'accepted' && (
-                                                <Button size="sm" variant="secondary" onClick={() => completeRequest(req._id)}>Complete</Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <div className="md:col-span-1 space-y-6">
-                    {/* Map for Tracking */}
-                    <Card className="h-96 overflow-hidden flex flex-col">
-                        <CardHeader className="py-3">
-                            <CardTitle className="text-sm uppercase text-gray-500">Live Tracking</CardTitle>
-                        </CardHeader>
-                        <div className="flex-1 relative">
-                            <Map center={center} markers={mapMarkers} />
+                    <div className="flex items-center gap-4">
+                        <div className={`flex items-center space-x-3 px-5 py-2.5 rounded-full border transition-all duration-300 ${isAvailable ? "bg-green-500/10 border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.2)]" : "bg-card border-border shadow-sm"}`}>
+                            <Switch
+                                id="availability"
+                                checked={isAvailable}
+                                onCheckedChange={toggleAvailability}
+                                className="data-[state=checked]:bg-green-500"
+                            />
+                            <Label htmlFor="availability" className={`font-semibold cursor-pointer ${isAvailable ? "text-green-500" : "text-muted-foreground"}`}>
+                                {isAvailable ? "ONLINE" : "OFFLINE"}
+                            </Label>
                         </div>
-                    </Card>
+                        <Button onClick={handleLogout} variant="outline" className="border-border/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors">
+                            Logout
+                        </Button>
+                    </div>
+                </div>
 
-                    <Card>
+                {/* Main Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    {/* Left Column: Active Requests */}
+                    <Card className="lg:col-span-2 bg-card/60 backdrop-blur-md border-border/50 shadow-lg flex flex-col max-h-[800px]">
                         <CardHeader>
-                            <CardTitle>My Profile</CardTitle>
+                            <CardTitle className="flex justify-between items-center text-xl">
+                                Active Service Requests
+                                <Badge variant="outline" className="text-xs bg-background/50">{requests.filter(r => r.status !== 'completed' && r.status !== 'cancelled').length} Active</Badge>
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div>
-                                <Label className="text-xs text-gray-500 uppercase">Specialties</Label>
-                                <div className="flex flex-wrap gap-2 mt-1">
-                                    {mechanicData?.specialties?.map((s: string, i: number) => (
-                                        <Badge key={i} variant="secondary">{s}</Badge>
-                                    ))}
-                                    {!mechanicData?.specialties?.length && <span className="text-sm text-gray-500">None listed</span>}
+                        <CardContent className="overflow-y-auto pr-2 custom-scrollbar flex-1">
+                            {requests.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border-2 border-dashed border-border/30 rounded-xl bg-background/20">
+                                    <p>No active requests.</p>
+                                    <p className="text-sm opacity-70">Stay online to receive jobs.</p>
                                 </div>
-                            </div>
-                            <div>
-                                <Label className="text-xs text-gray-500 uppercase">Certifications</Label>
-                                <div className="flex flex-wrap gap-2 mt-1">
-                                    {mechanicData?.certifications?.map((c: string, i: number) => (
-                                        <Badge key={i} variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">{c}</Badge>
+                            ) : (
+                                <div className="space-y-4">
+                                    {requests.filter(r => r.status !== 'completed' && r.status !== 'cancelled').length === 0 && (
+                                        <div className="text-center py-10 text-muted-foreground">No pending or active jobs.</div>
+                                    )}
+
+                                    {requests.map(req => (
+                                        <div key={req._id} className={`p-5 border rounded-xl transition-all duration-300 ${req.status === 'pending'
+                                                ? 'bg-yellow-500/5 border-yellow-500/20 hover:border-yellow-500/40'
+                                                : req.status === 'accepted'
+                                                    ? 'bg-primary/5 border-primary/20 hover:border-primary/40 shadow-[0_0_10px_rgba(var(--primary),0.1)]'
+                                                    : 'bg-card/40 border-border/40 opacity-70'
+                                            }`}>
+                                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                                <div>
+                                                    <div className="flex items-center gap-3 mb-1">
+                                                        <h3 className="font-bold text-lg text-foreground">{req.serviceType}</h3>
+                                                        <Badge className={`${req.status === 'pending' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' :
+                                                                req.status === 'accepted' ? 'bg-green-600 hover:bg-green-700' :
+                                                                    'bg-secondary'
+                                                            }`}>
+                                                            {req.status.toUpperCase()}
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                                            <span className="w-4 h-4 inline-block opacity-70">👤</span>
+                                                            {req.user?.name || 'Unknown User'}
+                                                        </p>
+                                                        {req.user?.phone && (
+                                                            <p className="text-sm text-primary flex items-center gap-2">
+                                                                <span className="w-4 h-4 inline-block opacity-70">📞</span>
+                                                                <a href={`tel:${req.user.phone}`} className="hover:underline">{req.user.phone}</a>
+                                                            </p>
+                                                        )}
+                                                        <p className="text-xs text-muted-foreground/70">
+                                                            {new Date(req.date).toLocaleString()}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                    {req.status === 'pending' && (
+                                                        <Button className="w-full sm:w-auto font-semibold shadow-lg shadow-green-900/20" onClick={() => acceptRequest(req._id)}>
+                                                            Accept Job
+                                                        </Button>
+                                                    )}
+                                                    {req.status === 'accepted' && (
+                                                        <div className="flex gap-2 w-full sm:w-auto">
+                                                            <Button variant="outline" size="sm" className="flex-1 sm:flex-none border-primary/30 text-primary hover:bg-primary/10">
+                                                                Chat
+                                                            </Button>
+                                                            <Button variant="secondary" size="sm" className="flex-1 sm:flex-none bg-green-600/20 text-green-500 hover:bg-green-600/30 border border-green-600/20" onClick={() => completeRequest(req._id)}>
+                                                                Mark Complete
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {req.status === 'completed' && (
+                                                        <Badge variant="outline" className="border-green-500/50 text-green-500">Completed</Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
                                     ))}
-                                    {!mechanicData?.certifications?.length && <span className="text-sm text-gray-500">None listed</span>}
                                 </div>
-                            </div>
-                            <Button variant="outline" className="w-full text-xs">Edit Profile</Button>
+                            )}
                         </CardContent>
                     </Card>
+
+                    {/* Right Column: Map & Tools */}
+                    <div className="md:col-span-1 space-y-6 flex flex-col">
+
+                        {/* GPS Tool */}
+                        <div className="bg-card/60 backdrop-blur-md p-4 rounded-xl border border-border/50 shadow-lg">
+                            <GPSImporter
+                                onLocationUpdate={(loc) => {
+                                    handleLocationUpdate(loc);
+                                    // setCenter updated in wrapper
+                                }}
+                                currentLocation={{ latitude: center[0], longitude: center[1] }}
+                            />
+                        </div>
+
+                        {/* Map */}
+                        <Card className="flex-1 min-h-[400px] overflow-hidden flex flex-col bg-card/60 backdrop-blur-md border border-border/50 shadow-lg">
+                            <CardHeader className="py-3 border-b border-border/30 bg-background/20">
+                                <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                    <span>📍</span> Live Tracking
+                                </CardTitle>
+                            </CardHeader>
+                            <div className="flex-1 relative z-0">
+                                <Map
+                                    center={center}
+                                    markers={mapMarkers}
+                                    enableLocationSelection={true}
+                                    onLocationSelect={(lat, lng) => {
+                                        handleLocationUpdate({ latitude: lat, longitude: lng });
+                                        toast.info("Location updated manually");
+                                    }}
+                                />
+                            </div>
+                        </Card>
+
+                        {/* Profile Summary */}
+                        <Card className="bg-card/60 backdrop-blur-md border border-border/50 shadow-lg">
+                            <CardHeader>
+                                <CardTitle className="text-lg">My Profile</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Specialties</Label>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {mechanicData?.specialties?.map((s: string, i: number) => (
+                                            <Badge key={i} variant="secondary" className="bg-secondary text-secondary-foreground border-border/50">{s}</Badge>
+                                        ))}
+                                        {!mechanicData?.specialties?.length && <span className="text-sm text-muted-foreground italic">None listed</span>}
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Certifications</Label>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {mechanicData?.certifications?.map((c: string, i: number) => (
+                                            <Badge key={i} variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/5">{c}</Badge>
+                                        ))}
+                                        {!mechanicData?.certifications?.length && <span className="text-sm text-muted-foreground italic">None listed</span>}
+                                    </div>
+                                </div>
+                                <Button variant="ghost" className="w-full text-xs text-muted-foreground hover:text-foreground">Edit Profile Settings</Button>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             </div>
         </div>

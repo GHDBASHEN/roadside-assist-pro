@@ -136,7 +136,7 @@ const UserDashboard = () => {
         const bookingMarkers = Array.isArray(bookings) ? bookings
             .filter(b => b.mechanic && b.mechanic.location && (b.status === 'accepted' || b.status === 'pending'))
             .map(b => ({
-                id: b.mechanic._id,
+                id: b._id,
                 lat: b.mechanic.location.coordinates[1],
                 lng: b.mechanic.location.coordinates[0],
                 title: `Mechanic: ${b.mechanic.name} (${b.status})`,

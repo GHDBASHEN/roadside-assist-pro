@@ -92,4 +92,39 @@ router.put('/location', require('../middleware/auth'), async (req, res) => {
     }
 });
 
+
+// @route   PUT api/users/profile
+// @desc    Update user profile (name, phone, specialties, certifications)
+// @access  Private
+router.put('/profile', require('../middleware/auth'), async (req, res) => {
+    const { name, phone, specialties, certifications } = req.body;
+
+    // Build profile object
+    const profileFields = {};
+    if (name) profileFields.name = name;
+    if (phone) profileFields.phone = phone;
+    if (specialties) profileFields.specialties = specialties;
+    if (certifications) profileFields.certifications = certifications;
+
+    try {
+        let user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        // Update
+        user = await User.findByIdAndUpdate(
+            req.user.id,
+            { $set: profileFields },
+            { new: true }
+        ).select('-password');
+
+        res.json(user);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
 module.exports = router;

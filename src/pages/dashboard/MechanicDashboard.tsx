@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import GPSImporter from "@/components/GPSImporter";
 import Map from "@/components/Map";
+import EditProfileModal from "@/components/EditProfileModal";
 
 const MechanicDashboard = () => {
     const navigate = useNavigate();
@@ -17,6 +18,7 @@ const MechanicDashboard = () => {
     const [requests, setRequests] = useState<any[]>([]);
     const [center, setCenter] = useState<[number, number]>([40.7128, -74.0060]);
     const [isEditingLocation, setIsEditingLocation] = useState(false);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -27,7 +29,6 @@ const MechanicDashboard = () => {
                 ]);
 
                 setMechanicData(profileRes.data);
-                setIsAvailable(profileRes.data.isAvailable);
                 // Ensure boolean
                 setIsAvailable(!!profileRes.data.isAvailable);
                 setRequests(bookingsRes.data);
@@ -138,15 +139,36 @@ const MechanicDashboard = () => {
                 <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] opacity-20" />
             </div>
 
+            <EditProfileModal
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+                user={mechanicData}
+                onProfileUpdate={() => {
+                    api.get('/auth').then(res => setMechanicData(res.data));
+                }}
+            />
+
             <div className="relative z-10 p-6 md:p-8 max-w-7xl mx-auto flex flex-col gap-6">
 
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card/60 backdrop-blur-md p-6 rounded-2xl border border-border/50 shadow-lg">
                     <div>
                         <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">AutoMIG Mechanic</h1>
-                        <p className="text-muted-foreground mt-1">Welcome back, <span className="text-foreground font-medium">{mechanicData?.name}</span></p>
+                        <p className="text-muted-foreground mt-1">
+                            Welcome back, <span className="text-foreground font-medium">{mechanicData?.name}</span>
+                        </p>
                     </div>
                     <div className="flex items-center gap-4">
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsProfileModalOpen(true)}
+                            className="mr-2 hidden sm:flex"
+                        >
+                            Edit Profile
+                        </Button>
+
                         <div className={`flex items-center space-x-3 px-5 py-2.5 rounded-full border transition-all duration-300 ${isAvailable ? "bg-green-500/10 border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.2)]" : "bg-card border-border shadow-sm"}`}>
                             <Switch
                                 id="availability"
@@ -325,7 +347,13 @@ const MechanicDashboard = () => {
                                         {!mechanicData?.certifications?.length && <span className="text-sm text-muted-foreground italic">None listed</span>}
                                     </div>
                                 </div>
-                                <Button variant="ghost" className="w-full text-xs text-muted-foreground hover:text-foreground">Edit Profile Settings</Button>
+                                <Button
+                                    variant="ghost"
+                                    className="w-full text-xs text-muted-foreground hover:text-foreground"
+                                    onClick={() => setIsProfileModalOpen(true)}
+                                >
+                                    Edit Profile Settings
+                                </Button>
                             </CardContent>
                         </Card>
                     </div>

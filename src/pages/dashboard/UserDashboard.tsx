@@ -26,7 +26,22 @@ const UserDashboard = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     useEffect(() => {
-        fetchBookings();
+        const fetchInitialData = async () => {
+            try {
+                // Fetch User Profile for Location
+                const userRes = await api.get('/auth');
+                if (userRes.data?.location?.coordinates) {
+                    setCenter([userRes.data.location.coordinates[1], userRes.data.location.coordinates[0]]);
+                }
+
+                // Fetch Bookings
+                fetchBookings();
+            } catch (err) {
+                console.error("Failed to fetch initial data", err);
+            }
+        };
+
+        fetchInitialData();
     }, []);
 
     useEffect(() => {

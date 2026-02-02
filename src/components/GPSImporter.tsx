@@ -1,37 +1,14 @@
-import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { Crosshair } from 'lucide-react';
 
 interface GPSImporterProps {
     onLocationUpdate: (location: { latitude: number; longitude: number }) => void;
     currentLocation?: { latitude: number; longitude: number };
 }
 
-const GPSImporter = ({ onLocationUpdate, currentLocation }: GPSImporterProps) => {
-    const [latitude, setLatitude] = useState(currentLocation?.latitude?.toString() || '');
-    const [longitude, setLongitude] = useState(currentLocation?.longitude?.toString() || '');
-
-    useEffect(() => {
-        if (currentLocation) {
-            setLatitude(currentLocation.latitude.toString());
-            setLongitude(currentLocation.longitude.toString());
-        }
-    }, [currentLocation]);
-
-    const handleImport = () => {
-        const lat = parseFloat(latitude);
-        const lng = parseFloat(longitude);
-
-        if (isNaN(lat) || isNaN(lng)) {
-            toast.error('Invalid coordinates');
-            return;
-        }
-
-        onLocationUpdate({ latitude: lat, longitude: lng });
-        toast.success('GPS Data Imported/Updated');
-    };
+const GPSImporter = ({ onLocationUpdate }: GPSImporterProps) => {
 
     const useCurrentLocation = () => {
         if (!navigator.geolocation) {
@@ -39,46 +16,40 @@ const GPSImporter = ({ onLocationUpdate, currentLocation }: GPSImporterProps) =>
             return;
         }
 
+        const toastId = toast.loading("Fetching location...");
+
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                setLatitude(position.coords.latitude.toString());
-                setLongitude(position.coords.longitude.toString());
+                toast.dismiss(toastId);
                 onLocationUpdate({
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude
                 });
-                toast.success('Fetched current location');
+                toast.success('Location updated');
             },
-            () => {
-                toast.error('Unable to retrieve your location');
-            }
+            (error) => {
+                toast.dismiss(toastId);
+                console.error("Geolocation error:", error);
+                toast.error('Unable to retrieve your location. Enable GPS.');
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     };
 
     return (
-        <Card className="w-full mb-4 bg-card/80 backdrop-blur border-border/50 shadow-lg">
-            <CardHeader className="py-3">
-                <CardTitle className="text-sm font-medium">GPS Data Import</CardTitle>
-            </CardHeader>
-            <CardContent className="flex gap-2 items-end">
-                <div className="grid gap-1 flex-1">
-                    <label className="text-xs text-muted-foreground">Latitude</label>
-                    <Input
-                        placeholder="40.7128"
-                        value={latitude}
-                        onChange={(e) => setLatitude(e.target.value)}
-                    />
-                </div>
-                <div className="grid gap-1 flex-1">
-                    <label className="text-xs text-muted-foreground">Longitude</label>
-                    <Input
-                        placeholder="-74.0060"
-                        value={longitude}
-                        onChange={(e) => setLongitude(e.target.value)}
-                    />
-                </div>
-                <Button variant="outline" onClick={handleImport}>Set</Button>
-                <Button variant="secondary" onClick={useCurrentLocation}>Get Current</Button>
+        <Card className="w-full bg-card/60 backdrop-blur border-border/50 shadow-sm">
+            <CardContent className="p-2 flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground ml-2">Current GPS</span>
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={useCurrentLocation}
+                    className="flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+                >
+                    <Crosshair className="w-4 h-4" />
+                    <span className="hidden sm:inline">Get Live Location</span>
+                    <span className="sm:hidden">Locate Me</span>
+                </Button>
             </CardContent>
         </Card>
     );

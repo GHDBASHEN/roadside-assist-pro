@@ -24,6 +24,7 @@ const UserDashboard = () => {
     const [bookings, setBookings] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isEditingLocation, setIsEditingLocation] = useState(false); // Map lock state
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -159,6 +160,25 @@ const UserDashboard = () => {
     // Reusable Sidebar Content
     const SidebarContent = () => (
         <div className="flex flex-col gap-4 h-full">
+            <div className="bg-card/80 backdrop-blur border-border/50 shadow-lg p-3 rounded-lg flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-medium">My Location</h3>
+                    <Button
+                        variant={isEditingLocation ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setIsEditingLocation(!isEditingLocation)}
+                        className={isEditingLocation ? "bg-green-600 hover:bg-green-700" : ""}
+                    >
+                        {isEditingLocation ? "Save Position" : "Adjust Location"}
+                    </Button>
+                </div>
+                {isEditingLocation && (
+                    <p className="text-xs text-muted-foreground animate-in fade-in">
+                        Drag the map marker or click on the map to set your location.
+                    </p>
+                )}
+            </div>
+
             <GPSImporter
                 onLocationUpdate={handleLocationUpdate}
                 currentLocation={{ latitude: center[0], longitude: center[1] }}
@@ -356,7 +376,7 @@ const UserDashboard = () => {
                                 center={center}
                                 markers={mapMarkers}
                                 onLocationSelect={(lat, lng) => handleLocationUpdate({ latitude: lat, longitude: lng })}
-                                enableLocationSelection={true}
+                                enableLocationSelection={isEditingLocation}
                                 onMarkerClick={(id) => {
                                     // Check if it's an available mechanic
                                     const mechanic = availableMechanics.find(m => m._id === id);

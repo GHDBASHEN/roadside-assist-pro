@@ -16,6 +16,7 @@ const MechanicDashboard = () => {
     const [mechanicData, setMechanicData] = useState<any>(null);
     const [requests, setRequests] = useState<any[]>([]);
     const [center, setCenter] = useState<[number, number]>([40.7128, -74.0060]);
+    const [isEditingLocation, setIsEditingLocation] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -252,8 +253,25 @@ const MechanicDashboard = () => {
                     {/* Right Column: Map & Tools */}
                     <div className="md:col-span-1 space-y-6 flex flex-col">
 
+
                         {/* GPS Tool */}
-                        <div className="bg-card/60 backdrop-blur-md p-4 rounded-xl border border-border/50 shadow-lg">
+                        <div className="bg-card/60 backdrop-blur-md p-4 rounded-xl border border-border/50 shadow-lg space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-sm font-medium">My Location</h3>
+                                <Button
+                                    variant={isEditingLocation ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => setIsEditingLocation(!isEditingLocation)}
+                                    className={isEditingLocation ? "bg-green-600 hover:bg-green-700" : ""}
+                                >
+                                    {isEditingLocation ? "Save Position" : "Adjust Location"}
+                                </Button>
+                            </div>
+                            {isEditingLocation && (
+                                <p className="text-xs text-muted-foreground animate-in fade-in">
+                                    Drag the pin or click on the map to set your live location.
+                                </p>
+                            )}
                             <GPSImporter
                                 onLocationUpdate={(loc) => {
                                     handleLocationUpdate(loc);
@@ -274,7 +292,7 @@ const MechanicDashboard = () => {
                                 <Map
                                     center={center}
                                     markers={mapMarkers}
-                                    enableLocationSelection={true}
+                                    enableLocationSelection={isEditingLocation}
                                     onLocationSelect={(lat, lng) => {
                                         handleLocationUpdate({ latitude: lat, longitude: lng });
                                         toast.info("Location updated manually");

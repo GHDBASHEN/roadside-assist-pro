@@ -10,6 +10,7 @@ import Register from "./pages/auth/Register";
 import UserDashboard from "./pages/dashboard/UserDashboard";
 import MechanicDashboard from "./pages/dashboard/MechanicDashboard";
 import BookingHistory from "./pages/dashboard/BookingHistory";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -23,9 +24,30 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<UserDashboard />} />
-          <Route path="/mechanic-dashboard" element={<MechanicDashboard />} />
-          <Route path="/history" element={<BookingHistory />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <UserDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/mechanic-dashboard"
+            element={
+              <ProtectedRoute>
+                <MechanicDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <ProtectedRoute>
+                <BookingHistory />
+              </ProtectedRoute>
+            }
+          />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

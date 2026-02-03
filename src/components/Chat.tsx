@@ -6,9 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 // Construct socket URL dynamically to support network access
-const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-const socketUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
-const socket = io(socketUrl); // Connect to backend
+const socketUrl = import.meta.env.VITE_API_URL 
+    ? import.meta.env.VITE_API_URL.replace('/api', '') 
+    : 'http://localhost:5000';
+
+const socket = io(socketUrl, {
+    transports: ['websocket', 'polling'], // Add this to ensure better compatibility
+    withCredentials: false
+});
 
 import { X } from "lucide-react";
 

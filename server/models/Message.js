@@ -6,15 +6,16 @@ const MessageSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    receiver: { // Can be a Booking ID or User ID depending on room logic
-        type: String,
+    receiver: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
         required: true
     },
     text: {
         type: String,
         required: true
     },
-    date: {
+    timestamp: {
         type: Date,
         default: Date.now
     }

@@ -28,6 +28,8 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/mechanics', require('./routes/mechanics'));
 app.use('/api/bookings', require('./routes/bookings'));
+app.use('/api/messages', require('./routes/messages'));
+const Message = require('./models/Message');
 
 // Socket.io connection
 io.on('connection', (socket) => {
@@ -38,7 +40,19 @@ io.on('connection', (socket) => {
         console.log(`User ${userId} joined room`);
     });
 
-    socket.on('sendMessage', ({ senderId, receiverId, text }) => {
+    socket.on('sendMessage', async ({ senderId, receiverId, text }) => {
+        // Save to DB
+        try {
+            const newMessage = new Message({
+                sender: senderId,
+                receiver: receiverId,
+                text
+            });
+            await newMessage.save();
+        } catch (err) {
+            console.error("Error saving message:", err);
+        }
+
         io.to(receiverId).emit('message', { senderId, text });
         console.log(`Message sent from ${senderId} to ${receiverId}`);
     });

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import GPSImporter from "@/components/GPSImporter";
 import Map from "@/components/Map";
 import EditProfileModal from "@/components/EditProfileModal";
+import Chat from "@/components/Chat";
 
 const MechanicDashboard = () => {
     const navigate = useNavigate();
@@ -19,6 +20,8 @@ const MechanicDashboard = () => {
     const [center, setCenter] = useState<[number, number]>([40.7128, -74.0060]);
     const [isEditingLocation, setIsEditingLocation] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [showChat, setShowChat] = useState(false);
+    const [chatReceiverId, setChatReceiverId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -252,7 +255,15 @@ const MechanicDashboard = () => {
                                                     )}
                                                     {req.status === 'accepted' && (
                                                         <div className="flex gap-2 w-full sm:w-auto">
-                                                            <Button variant="outline" size="sm" className="flex-1 sm:flex-none border-primary/30 text-primary hover:bg-primary/10">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="flex-1 sm:flex-none border-primary/30 text-primary hover:bg-primary/10"
+                                                                onClick={() => {
+                                                                    setChatReceiverId(req.user._id);
+                                                                    setShowChat(true);
+                                                                }}
+                                                            >
                                                                 Chat
                                                             </Button>
                                                             <Button variant="secondary" size="sm" className="flex-1 sm:flex-none bg-green-600/20 text-green-500 hover:bg-green-600/30 border border-green-600/20" onClick={() => completeRequest(req._id)}>
@@ -359,6 +370,15 @@ const MechanicDashboard = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Chat Overlay */}
+            {showChat && chatReceiverId && mechanicData?._id && (
+                <Chat
+                    userId={mechanicData._id}
+                    receiverId={chatReceiverId}
+                    onClose={() => setShowChat(false)}
+                />
+            )}
         </div>
     );
 };

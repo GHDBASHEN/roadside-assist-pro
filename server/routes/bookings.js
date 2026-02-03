@@ -11,6 +11,20 @@ router.post('/', auth, async (req, res) => {
     const { serviceType, location, description, mechanicId } = req.body;
 
     try {
+        // Check for existing pending/recent requests
+        const lastBooking = await Booking.findOne({ user: req.user.id })
+            .sort({ date: -1 });
+
+        if (lastBooking) {
+            const timeDiff = Date.now() - new Date(lastBooking.date).getTime();
+            const minutesDiff = timeDiff / (1000 * 60);
+
+            if (minutesDiff < 15) {
+                return res.status(429).json({
+                    msg: `Please wait ${Math.ceil(15 - minutesDiff)} minutes before making another request`
+                });
+            }
+        }
         const bookingData = {
             user: req.user.id,
             serviceType,

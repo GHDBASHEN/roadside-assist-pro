@@ -26,6 +26,7 @@ const UserDashboard = () => {
     const [loading, setLoading] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isEditingLocation, setIsEditingLocation] = useState(false); // Map lock state
+    const [showChat, setShowChat] = useState(false);
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -101,9 +102,13 @@ const UserDashboard = () => {
             setSelectedMechanic(null);
             fetchBookings();
             setIsMobileMenuOpen(false); // Close menu on mobile after request
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            toast.error("Failed to submit request");
+            if (err.response && err.response.status === 429) {
+                alert(err.response.data.msg);
+            } else {
+                toast.error("Failed to submit request");
+            }
         } finally {
             setLoading(false);
         }
@@ -271,7 +276,14 @@ const UserDashboard = () => {
                                 >
                                     Call
                                 </Button>
-                                <Button size="sm" variant="outline" className="flex-1">Chat</Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={() => setShowChat(true)}
+                                >
+                                    Chat
+                                </Button>
                             </div>
                         </div>
                     )}
@@ -402,8 +414,14 @@ const UserDashboard = () => {
                     </div>
                 </main>
             </div>
-            {/* Chat overlay or component could go here */}
-            {/* <Chat userId="user123" receiverId="mechanic123" /> */}
+            {/* Chat overlay */}
+            {showChat && selectedMechanic && userData?._id && (
+                <Chat
+                    userId={userData._id}
+                    receiverId={selectedMechanic}
+                    onClose={() => setShowChat(false)}
+                />
+            )}
         </div>
     );
 };

@@ -11,6 +11,7 @@ import GPSImporter from "@/components/GPSImporter";
 import Map from "@/components/Map";
 import EditProfileModal from "@/components/EditProfileModal";
 import Chat from "@/components/Chat";
+import { getRoute } from "@/lib/routing";
 
 const MechanicDashboard = () => {
     const navigate = useNavigate();
@@ -22,6 +23,31 @@ const MechanicDashboard = () => {
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [showChat, setShowChat] = useState(false);
     const [chatReceiverId, setChatReceiverId] = useState<string | null>(null);
+    const [route, setRoute] = useState<[number, number][] | undefined>(undefined);
+
+    // Calculate route to active user
+    useEffect(() => {
+        const fetchRoute = async () => {
+            const activeRequest = requests.find(r => (r.status === 'accepted') && r._id);
+            // Filter by accepted mostly. 
+            // In mechanic dashboard, we might have multiple active?
+            // Usually one mechanic handles one active job ideally?
+            // Or we just show route to the *first* accepted/active one.
+
+            // Let's stick to the first accepted one for visualization
+            const targetReq = requests.find(r => r.status === 'accepted' && r.user && r.user.location);
+
+            if (targetReq && center) {
+                const userLoc = targetReq.user.location.coordinates;
+                // userLoc is [lng, lat]
+                const routePoints = await getRoute(center, [userLoc[1], userLoc[0]]);
+                setRoute(routePoints);
+            } else {
+                setRoute(undefined);
+            }
+        };
+        fetchRoute();
+    }, [requests, center]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -330,6 +356,7 @@ const MechanicDashboard = () => {
                                         handleLocationUpdate({ latitude: lat, longitude: lng });
                                         toast.info("Location updated manually");
                                     }}
+                                    route={route}
                                 />
                             </div>
                         </Card>

@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import L from 'leaflet';
@@ -125,9 +125,10 @@ interface MapProps {
     onLocationSelect?: (lat: number, lng: number) => void;
     enableLocationSelection?: boolean;
     onMarkerClick?: (id: string) => void;
+    route?: [number, number][]; // Array of [lat, lng]
 }
 
-const Map = ({ center, markers, onLocationSelect, enableLocationSelection = false, onMarkerClick }: MapProps) => {
+const Map = ({ center, markers, onLocationSelect, enableLocationSelection = false, onMarkerClick, route }: MapProps) => {
 
     const getIcon = (type?: string) => {
         switch (type) {
@@ -186,6 +187,7 @@ const Map = ({ center, markers, onLocationSelect, enableLocationSelection = fals
                     </Marker>
                 )
             })}
+            {route && <Polyline positions={route} pathOptions={{ color: 'blue', weight: 4, dashArray: '10, 10', dashOffset: '0' }} />}
             <MapUpdater center={center} />
         </MapContainer>
     );

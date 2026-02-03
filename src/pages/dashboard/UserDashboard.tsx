@@ -14,6 +14,7 @@ import { getDistance } from 'geolib';
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
+import { getRoute } from "@/lib/routing";
 
 const UserDashboard = () => {
     const navigate = useNavigate();
@@ -27,6 +28,7 @@ const UserDashboard = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isEditingLocation, setIsEditingLocation] = useState(false); // Map lock state
     const [showChat, setShowChat] = useState(false);
+    const [route, setRoute] = useState<[number, number][] | undefined>(undefined);
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -135,6 +137,27 @@ const UserDashboard = () => {
         }, 5000);
         return () => clearInterval(interval);
     }, []);
+
+    // Calculate route to mechanic if booking is accepted
+    useEffect(() => {
+        const fetchRoute = async () => {
+            const acceptedBooking = bookings.find(b => b.status === 'accepted' || b.status === 'pending'); // Show for pending too regarding mechanic showing? No only accepted usually.
+            // Let's only show for accepted for now as per requirement "mechanic accept the job"
+
+            const activeBooking = bookings.find(b => b.status === 'accepted' && b.mechanic && b.mechanic.location);
+
+            if (activeBooking && center) {
+                const mechLoc = activeBooking.mechanic.location.coordinates;
+                // mechLoc is [lng, lat], center is [lat, lng]
+                // getRoute expects [lat, lng]
+                const routePoints = await getRoute(center, [mechLoc[1], mechLoc[0]]);
+                setRoute(routePoints);
+            } else {
+                setRoute(undefined);
+            }
+        };
+        fetchRoute();
+    }, [bookings, center]);
 
     // Combine booking markers (tracking) and available mechanics markers (discovery)
     const mapMarkers = useMemo(() => {
@@ -397,6 +420,7 @@ const UserDashboard = () => {
                                 markers={mapMarkers}
                                 onLocationSelect={(lat, lng) => handleLocationUpdate({ latitude: lat, longitude: lng })}
                                 enableLocationSelection={isEditingLocation}
+                                route={route}
                                 onMarkerClick={(id) => {
                                     // Check if it's an available mechanic
                                     const mechanic = availableMechanics.find(m => m._id === id);

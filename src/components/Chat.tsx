@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import io from 'socket.io-client';
 import api from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 // Construct socket URL dynamically to support network access
-const socketUrl = import.meta.env.VITE_API_URL 
-    ? import.meta.env.VITE_API_URL.replace('/api', '') 
+const socketUrl = import.meta.env.VITE_API_URL
+    ? import.meta.env.VITE_API_URL.replace('/api', '')
     : 'http://localhost:5000';
 
 const socket = io(socketUrl, {
@@ -15,11 +16,18 @@ const socket = io(socketUrl, {
     withCredentials: false
 });
 
-import { X } from "lucide-react";
-
 const Chat = ({ userId, receiverId, onClose }: { userId: string, receiverId: string, onClose: () => void }) => {
     const [messages, setMessages] = useState<{ senderId: string, text: string }[]>([]);
     const [input, setInput] = useState('');
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
 
     useEffect(() => {
         // Fetch conversation history
@@ -96,7 +104,7 @@ const Chat = ({ userId, receiverId, onClose }: { userId: string, receiverId: str
                             <div
                                 className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm ${isMe
                                     ? 'bg-primary text-primary-foreground rounded-br-none'
-                                    : 'bg-white dark:bg-slate-800 text-foreground border border-border/50 rounded-bl-none'
+                                    : 'bg-muted text-muted-foreground border border-border/50 rounded-bl-none font-medium'
                                     }`}
                             >
                                 {msg.text}
@@ -107,6 +115,7 @@ const Chat = ({ userId, receiverId, onClose }: { userId: string, receiverId: str
                         </div>
                     );
                 })}
+                <div ref={messagesEndRef} />
             </CardContent>
             <CardFooter className="p-2 border-t">
                 <form onSubmit={sendMessage} className="flex w-full gap-2">

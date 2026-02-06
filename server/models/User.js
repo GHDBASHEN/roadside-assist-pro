@@ -23,6 +23,12 @@ const UserSchema = new mongoose.Schema({
         enum: ['user', 'mechanic', 'admin'],
         default: 'user'
     },
+    vehicles: [{
+        make: { type: String, required: true },
+        model: { type: String, required: true },
+        year: { type: Number, required: true },
+        licensePlate: { type: String, required: true }
+    }],
     // Mechanic specific fields
     specialties: [{
         type: String

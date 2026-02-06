@@ -1,72 +1,91 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import api from "@/lib/api";
 
 const BookingHistory = () => {
-    // Mock data for history
-    const bookings = [
-        {
-            id: 1,
-            date: '2023-10-25',
-            service: 'Flat Tire',
-            mechanic: 'John Smith',
-            status: 'Completed',
-            cost: '$50.00',
-            notes: 'Replaced front left tire.'
-        },
-        {
-            id: 2,
-            date: '2023-11-12',
-            service: 'Battery Jump',
-            mechanic: 'Auto Fixer Inc.',
-            status: 'Completed',
-            cost: '$35.00',
-            notes: 'Battery health plausible.'
-        },
-        {
-            id: 3,
-            date: '2024-01-05',
-            service: 'Diagnostic',
-            mechanic: 'Speedy Repairs',
-            status: 'Pending',
-            cost: 'TBD',
-            notes: 'Engine light tracking.'
-        }
-    ];
+    const [bookings, setBookings] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchBookings = async () => {
+            try {
+                const res = await api.get('/bookings');
+                setBookings(res.data);
+            } catch (err) {
+                console.error("Failed to fetch bookings", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchBookings();
+    }, []);
+
+    if (loading) {
+        return <div className="p-6 text-center">Loading history...</div>;
+    }
 
     return (
         <div className="container mx-auto p-6">
             <h1 className="text-3xl font-bold mb-6">Booking History</h1>
-            <div className="grid gap-4">
-                {bookings.map((booking) => (
-                    <Card key={booking.id}>
-                        <CardHeader>
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <CardTitle>{booking.service}</CardTitle>
-                                    <CardDescription>{booking.date} • {booking.mechanic}</CardDescription>
+            {bookings.length === 0 ? (
+                <div className="text-center text-muted-foreground p-10 bg-card rounded-lg border">
+                    No booking history found.
+                </div>
+            ) : (
+                <div className="grid gap-4">
+                    {bookings.map((booking) => (
+                        <Card key={booking._id} className="overflow-hidden">
+                            <CardHeader className="pb-3">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <CardTitle>{booking.serviceType}</CardTitle>
+                                        <CardDescription>{new Date(booking.date).toLocaleDateString()} at {new Date(booking.date).toLocaleTimeString()} • {booking.mechanic ? booking.mechanic.name : 'Pending Assignment'}</CardDescription>
+                                    </div>
+                                    <Badge variant={booking.status === 'completed' ? 'default' : booking.status === 'cancelled' ? 'destructive' : 'secondary'}>
+                                        {booking.status}
+                                    </Badge>
                                 </div>
-                                <Badge variant={booking.status === 'Completed' ? 'default' : 'secondary'}>
-                                    {booking.status}
-                                </Badge>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <span className="font-semibold">Cost:</span> {booking.cost}
+                            </CardHeader>
+                            <CardContent className="grid gap-4">
+                                {booking.description && (
+                                    <div className="bg-muted/50 p-3 rounded-md text-sm italic">
+                                        "{booking.description}"
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                    {booking.vehicle && (
+                                        <div className="flex flex-col gap-1">
+                                            <span className="font-semibold text-muted-foreground">Vehicle</span>
+                                            <span>{booking.vehicle.year} {booking.vehicle.make} {booking.vehicle.model}</span>
+                                            <span className="text-xs text-muted-foreground font-mono">{booking.vehicle.licensePlate}</span>
+                                        </div>
+                                    )}
+
+                                    <div className="flex flex-col gap-1">
+                                        <span className="font-semibold text-muted-foreground">Location</span>
+                                        {booking.location?.coordinates ? (
+                                            <a
+                                                href={`https://www.google.com/maps/search/?api=1&query=${booking.location.coordinates[1]},${booking.location.coordinates[0]}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-primary hover:underline"
+                                            >
+                                                View on Map ↗
+                                            </a>
+                                        ) : (
+                                            <span>Location not available</span>
+                                        )}
+                                    </div>
                                 </div>
-                                <div>
-                                    <span className="font-semibold">Notes:</span> {booking.notes}
-                                </div>
-                            </div>
-                        </CardContent>
-                        <CardFooter>
-                            <Button variant="outline" size="sm">View Receipt</Button>
-                        </CardFooter>
-                    </Card>
-                ))}
-            </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

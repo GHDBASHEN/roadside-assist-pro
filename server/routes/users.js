@@ -97,14 +97,16 @@ router.put('/location', require('../middleware/auth'), async (req, res) => {
 // @desc    Update user profile (name, phone, specialties, certifications)
 // @access  Private
 router.put('/profile', require('../middleware/auth'), async (req, res) => {
-    const { name, phone, specialties, certifications } = req.body;
+    const { name, phone, specialties, certifications, vehicles } = req.body;
 
     // Build profile object
     const profileFields = {};
     if (name) profileFields.name = name;
     if (phone) profileFields.phone = phone;
     if (specialties) profileFields.specialties = specialties;
+    if (specialties) profileFields.specialties = specialties;
     if (certifications) profileFields.certifications = certifications;
+    if (vehicles) profileFields.vehicles = vehicles;
 
     try {
         let user = await User.findById(req.user.id);

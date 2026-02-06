@@ -4,6 +4,7 @@ import Map from "@/components/Map";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import Chat from "@/components/Chat";
@@ -13,14 +14,16 @@ import { Badge } from "@/components/ui/badge";
 import { getDistance } from 'geolib';
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Menu, User, Car } from "lucide-react";
 import { getRoute } from "@/lib/routing";
 import { socket } from "@/lib/socket";
+import EditProfileModal from "@/components/EditProfileModal";
 
 const UserDashboard = () => {
     const navigate = useNavigate();
     const [userData, setUserData] = useState<any>(null);
     const [serviceType, setServiceType] = useState("");
+    const [description, setDescription] = useState("");
     const [center, setCenter] = useState<[number, number]>([40.7128, -74.0060]);
     const [availableMechanics, setAvailableMechanics] = useState<any[]>([]);
     const [selectedMechanic, setSelectedMechanic] = useState<string | null>(null);
@@ -30,6 +33,8 @@ const UserDashboard = () => {
     const [isEditingLocation, setIsEditingLocation] = useState(false); // Map lock state
     const [showChat, setShowChat] = useState(false);
     const [route, setRoute] = useState<[number, number][] | undefined>(undefined);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
 
     // Track showChat state for socket listener
     const showChatRef = useRef(showChat);
@@ -138,11 +143,13 @@ const UserDashboard = () => {
             await api.post('/bookings', {
                 serviceType,
                 location: { latitude: center[0], longitude: center[1] },
-                description: `Need help with ${serviceType}`,
-                mechanicId: selectedMechanic // Optional: target specific mechanic
+                description: description || `Need help with ${serviceType}`,
+                mechanicId: selectedMechanic, // Optional: target specific mechanic
+                vehicle: selectedVehicle
             });
             toast.success(selectedMechanic ? "Request sent to mechanic!" : `Request for ${serviceType} sent!`);
             setSelectedMechanic(null);
+            setDescription(""); // Reset description
             fetchBookings();
             setIsMobileMenuOpen(false); // Close menu on mobile after request
         } catch (err: any) {
@@ -228,9 +235,55 @@ const UserDashboard = () => {
         [availableMechanics, selectedMechanic]
     );
 
+    const activeBookings = useMemo(() =>
+        bookings.filter(b => ['pending', 'accepted'].includes(b.status)),
+        [bookings]);
+
+    const pastBookings = useMemo(() =>
+        bookings.filter(b => ['completed', 'cancelled'].includes(b.status)),
+        [bookings]);
+
     // Reusable Sidebar Content
     const SidebarContent = () => (
         <div className="flex flex-col gap-4 h-full">
+            {/* Active Request Card - Prominent at Top */}
+            {activeBookings.length > 0 && (
+                <div className="bg-gradient-to-r from-primary/20 to-orange-400/10 border-l-4 border-primary p-4 rounded-r-lg shadow-sm animate-in slide-in-from-left">
+                    <h3 className="font-bold text-primary flex items-center justify-between">
+                        Current Request
+                        <Badge className="bg-primary animate-pulse">Live</Badge>
+                    </h3>
+                    {activeBookings.map(b => (
+                        <div key={b._id} className="mt-3">
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="font-semibold text-lg">{b.serviceType}</span>
+                                <Badge variant="outline" className="capitalize">{b.status}</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-2">{b.description || "No description provided."}</p>
+
+                            {b.mechanic ? (
+                                <div className="bg-background/50 p-2 rounded text-sm flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                    <span>Mechanic: <strong>{b.mechanic.name}</strong> is on the way!</span>
+                                </div>
+                            ) : (
+                                <div className="bg-background/50 p-2 rounded text-sm flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></div>
+                                    <span className="italic">Finding nearby mechanics...</span>
+                                </div>
+                            )}
+
+                            {/* Route info if applicable */}
+                            {b.status === 'accepted' && route && (
+                                <div className="mt-2 text-xs text-primary font-medium">
+                                    🚗 Mechanic is approx. {Math.round((route[0] ? 5 : 10))} mins away
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+
             <div className="bg-card/80 backdrop-blur border-border/50 shadow-lg p-3 rounded-lg flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                     <h3 className="text-sm font-medium">My Location</h3>
@@ -255,7 +308,7 @@ const UserDashboard = () => {
                 currentLocation={{ latitude: center[0], longitude: center[1] }}
             />
 
-            {/* Nearby Mechanics List */}
+            {/* Nearby Mechanics List - Hide if active request exists to reduce clutter? OR keep for info? Let's keep.*/}
             <Card className="bg-card/80 backdrop-blur border-border/50 shadow-lg flex-shrink-0">
                 <CardHeader className="pb-2">
                     <CardTitle className="text-lg text-foreground flex justify-between items-center">
@@ -300,6 +353,7 @@ const UserDashboard = () => {
                 </CardContent>
             </Card>
 
+            {/* Request Form - Disable or hide if active request? Let's keep but maybe disable if there is a pending one to prevent duplicates? For now, allow multiple as per potential requirement, or just user choice. */}
             <Card className="bg-card/80 backdrop-blur border-border/50 shadow-lg flex-shrink-0">
                 <CardHeader>
                     <CardTitle className="text-foreground">Request Assistance</CardTitle>
@@ -367,6 +421,43 @@ const UserDashboard = () => {
                                 <SelectItem value="Lockout">Car Lockout</SelectItem>
                             </SelectContent>
                         </Select>
+                        <div className="space-y-2">
+                            <Label className="text-muted-foreground">Issue Description</Label>
+                            <Textarea
+                                placeholder="Describe the issue... (e.g. car won't start, flat tire, etc.)"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                className="bg-background/50 border-input min-h-[80px]"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-muted-foreground">Select Vehicle</Label>
+                        <Select onValueChange={(val) => {
+                            const v = userData?.vehicles?.find((v: any) => v.licensePlate === val);
+                            setSelectedVehicle(v);
+                        }}>
+                            <SelectTrigger className="bg-background/50 border-input">
+                                <SelectValue placeholder="Select your vehicle" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {userData?.vehicles?.length > 0 ? (
+                                    userData.vehicles.map((v: any, i: number) => (
+                                        <SelectItem key={i} value={v.licensePlate}>
+                                            {v.year} {v.make} {v.model} ({v.licensePlate})
+                                        </SelectItem>
+                                    ))
+                                ) : (
+                                    <SelectItem value="none" disabled>No vehicles added</SelectItem>
+                                )}
+                            </SelectContent>
+                        </Select>
+                        {userData?.vehicles?.length === 0 && (
+                            <Button variant="link" size="sm" className="px-0 h-auto text-primary" onClick={() => setIsProfileModalOpen(true)}>
+                                + Add a vehicle in profile
+                            </Button>
+                        )}
                     </div>
 
                     <div className="pt-2">
@@ -379,27 +470,29 @@ const UserDashboard = () => {
 
             <div className="mt-auto flex-1 overflow-y-auto">
                 <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
-                    <span className="w-1 h-4 bg-primary rounded-full"></span>
-                    Booking History
+                    <span className="w-1 h-4 bg-gray-500 rounded-full"></span>
+                    Recent History
                 </h3>
-                {bookings.length === 0 ? (
+                {pastBookings.length === 0 ? (
                     <div className="text-sm text-muted-foreground bg-card/50 p-4 rounded-lg border border-border/50 text-center">
-                        No active bookings.
+                        No previous bookings.
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {bookings.map(b => (
-                            <div key={b._id} className="bg-card/90 p-4 rounded-xl border border-border/50 shadow-sm hover:border-primary/30 transition-colors">
+                        {pastBookings.slice(0, 3).map(b => (
+                            <div key={b._id} className="bg-card/90 p-4 rounded-xl border border-border/50 shadow-sm hover:border-primary/30 transition-colors opacity-80 hover:opacity-100 cursor-pointer" onClick={() => navigate('/history')}>
                                 <div className="flex justify-between font-semibold mb-1">
                                     <span className="text-foreground">{b.serviceType}</span>
                                     <Badge variant={b.status === 'completed' ? 'secondary' : 'default'} className="text-xs uppercase tracking-wider">{b.status}</Badge>
                                 </div>
                                 <div className="text-muted-foreground text-xs flex flex-col gap-1">
                                     <span>{new Date(b.date).toLocaleDateString()}</span>
+                                    {b.description && <span className="italic truncate">"{b.description}"</span>}
                                     {b.mechanic && <span className="text-primary/90 font-medium"> • Mechanic: {b.mechanic.name}</span>}
                                 </div>
                             </div>
                         ))}
+                        <Button variant="link" className="w-full text-xs text-muted-foreground" onClick={() => navigate('/history')}>View All History</Button>
                     </div>
                 )}
             </div>
@@ -424,7 +517,7 @@ const UserDashboard = () => {
                                 </div>
                             </SheetHeader>
                             <div className="mt-4 pb-10">
-                                <SidebarContent />
+                                {SidebarContent()}
                             </div>
                         </SheetContent>
                     </Sheet>
@@ -436,9 +529,27 @@ const UserDashboard = () => {
                 </div>
                 <div className="flex items-center gap-4">
                     <span className="text-sm text-muted-foreground hidden sm:inline-block">Welcome, {userData?.name || 'User'}</span>
+                    <Button variant="ghost" size="icon" onClick={() => setIsProfileModalOpen(true)}>
+                        <User className="h-5 w-5" />
+                    </Button>
                     <Button onClick={handleLogout} variant="outline" size="sm" className="border-primary/20 hover:bg-primary/10 hover:text-primary">Logout</Button>
                 </div>
             </header>
+
+            <EditProfileModal
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+                user={userData}
+                onProfileUpdate={() => {
+                    const fetchUserData = async () => {
+                        try {
+                            const userRes = await api.get('/auth');
+                            setUserData(userRes.data);
+                        } catch (e) { console.error(e); }
+                    };
+                    fetchUserData();
+                }}
+            />
 
             <div className="flex flex-1 overflow-hidden relative">
                 {/* Background Effects */}
@@ -449,7 +560,7 @@ const UserDashboard = () => {
 
                 {/* Sidebar Controls (Desktop) */}
                 <aside className="hidden md:flex w-96 p-4 bg-card/50 backdrop-blur-sm border-r border-border/50 overflow-y-auto z-10 flex-col gap-4 shadow-xl">
-                    <SidebarContent />
+                    {SidebarContent()}
                 </aside>
 
                 {/* Map Area */}

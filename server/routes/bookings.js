@@ -8,7 +8,7 @@ const User = require('../models/User');
 // @desc    Create a service request
 // @access  Private
 router.post('/', auth, async (req, res) => {
-    const { serviceType, location, description, mechanicId } = req.body;
+    const { serviceType, location, description, mechanicId, vehicle } = req.body;
 
     try {
         // Check for existing pending/recent requests
@@ -34,11 +34,16 @@ router.post('/', auth, async (req, res) => {
                     ? [location.longitude, location.latitude]
                     : [0, 0]
             },
-            status: 'pending'
+            status: 'pending',
+            description
         };
 
         if (mechanicId) {
             bookingData.mechanic = mechanicId;
+        }
+
+        if (vehicle) {
+            bookingData.vehicle = vehicle;
         }
 
         const newBooking = new Booking(bookingData);

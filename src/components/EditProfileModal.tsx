@@ -23,6 +23,8 @@ const EditProfileModal = ({ isOpen, onClose, onProfileUpdate, user }: EditProfil
     const [certifications, setCertifications] = useState<string[]>([]);
     const [newSpecialty, setNewSpecialty] = useState("");
     const [newCertification, setNewCertification] = useState("");
+    const [vehicles, setVehicles] = useState<any[]>([]);
+    const [newVehicle, setNewVehicle] = useState({ make: "", model: "", year: "", licensePlate: "" });
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -31,6 +33,7 @@ const EditProfileModal = ({ isOpen, onClose, onProfileUpdate, user }: EditProfil
             setPhone(user.phone || "");
             setSpecialties(user.specialties || []);
             setCertifications(user.certifications || []);
+            setVehicles(user.vehicles || []);
         }
     }, [user]);
 
@@ -41,7 +44,8 @@ const EditProfileModal = ({ isOpen, onClose, onProfileUpdate, user }: EditProfil
                 name,
                 phone,
                 specialties: user.role === 'mechanic' ? specialties : undefined,
-                certifications: user.role === 'mechanic' ? certifications : undefined
+                certifications: user.role === 'mechanic' ? certifications : undefined,
+                vehicles: user.role === 'user' ? vehicles : undefined
             });
             toast.success("Profile updated successfully");
             onProfileUpdate();
@@ -76,6 +80,17 @@ const EditProfileModal = ({ isOpen, onClose, onProfileUpdate, user }: EditProfil
         setCertifications(certifications.filter(item => item !== c));
     };
 
+    const addVehicle = () => {
+        if (newVehicle.make && newVehicle.model && newVehicle.year && newVehicle.licensePlate) {
+            setVehicles([...vehicles, newVehicle]);
+            setNewVehicle({ make: "", model: "", year: "", licensePlate: "" });
+        }
+    };
+
+    const removeVehicle = (index: number) => {
+        setVehicles(vehicles.filter((_, i) => i !== index));
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[425px]">
@@ -91,6 +106,50 @@ const EditProfileModal = ({ isOpen, onClose, onProfileUpdate, user }: EditProfil
                         <Label htmlFor="phone">Phone Number</Label>
                         <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1234567890" />
                     </div>
+
+                    {user?.role === 'user' && (
+                        <div className="grid gap-2">
+                            <Label>My Vehicles</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Input
+                                    placeholder="Make (e.g. Toyota)"
+                                    value={newVehicle.make}
+                                    onChange={(e) => setNewVehicle({ ...newVehicle, make: e.target.value })}
+                                />
+                                <Input
+                                    placeholder="Model (e.g. Camry)"
+                                    value={newVehicle.model}
+                                    onChange={(e) => setNewVehicle({ ...newVehicle, model: e.target.value })}
+                                />
+                                <Input
+                                    placeholder="Year"
+                                    type="number"
+                                    value={newVehicle.year}
+                                    onChange={(e) => setNewVehicle({ ...newVehicle, year: e.target.value })}
+                                />
+                                <Input
+                                    placeholder="License Plate"
+                                    value={newVehicle.licensePlate}
+                                    onChange={(e) => setNewVehicle({ ...newVehicle, licensePlate: e.target.value })}
+                                />
+                            </div>
+                            <Button type="button" onClick={addVehicle} className="w-full mt-2" variant="outline">Add Vehicle</Button>
+
+                            <div className="space-y-2 mt-2 max-h-40 overflow-y-auto">
+                                {vehicles.map((v, i) => (
+                                    <div key={i} className="flex justify-between items-center p-2 bg-secondary/20 rounded border text-sm">
+                                        <div>
+                                            <span className="font-semibold">{v.year} {v.make} {v.model}</span>
+                                            <div className="text-xs text-muted-foreground">{v.licensePlate}</div>
+                                        </div>
+                                        <Button variant="ghost" size="sm" onClick={() => removeVehicle(i)}>
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {user?.role === 'mechanic' && (
                         <>

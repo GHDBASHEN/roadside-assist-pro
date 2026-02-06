@@ -14,6 +14,15 @@ const BookingSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    description: {
+        type: String
+    },
+    vehicle: {
+        make: String,
+        model: String,
+        year: Number,
+        licensePlate: String
+    },
     status: {
         type: String,
         enum: ['pending', 'accepted', 'completed', 'cancelled'],

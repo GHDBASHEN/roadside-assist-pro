@@ -485,6 +485,7 @@ const UserDashboard = () => {
                     userId={userData._id}
                     receiverId={selectedMechanic}
                     onClose={() => setShowChat(false)}
+                    receiverRole="Mechanic"
                 />
             )}
         </div>

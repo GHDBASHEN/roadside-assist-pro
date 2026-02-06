@@ -9,7 +9,7 @@ import { X } from "lucide-react";
 // Construct socket URL dynamically to support network access
 import { socket } from '@/lib/socket';
 
-const Chat = ({ userId, receiverId, onClose }: { userId: string, receiverId: string, onClose: () => void }) => {
+const Chat = ({ userId, receiverId, onClose, receiverRole = 'User' }: { userId: string, receiverId: string, onClose: () => void, receiverRole?: string }) => {
     const [messages, setMessages] = useState<{ senderId: string, text: string }[]>([]);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -116,7 +116,7 @@ const Chat = ({ userId, receiverId, onClose }: { userId: string, receiverId: str
                                 {msg.text}
                             </div>
                             <span className="text-[10px] text-muted-foreground mt-1 px-1">
-                                {isMe ? 'You' : 'User'}
+                                {isMe ? 'You' : receiverRole}
                             </span>
                         </div>
                     );

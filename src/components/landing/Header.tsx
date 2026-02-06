@@ -83,7 +83,7 @@ const Header = () => {
                 <span className="text-sm font-medium text-muted-foreground">
                   Welcome, <span className="text-foreground">{user.name}</span>
                 </span>
-                <Link to={user.role === 'mechanic' ? "/mechanic-dashboard" : "/user-dashboard"}>
+                <Link to={user.role === 'mechanic' ? "/mechanic-dashboard" : "/dashboard"}>
                   <Button variant="hero" size="sm">Dashboard</Button>
                 </Link>
                 <Button variant="ghost" size="sm" onClick={handleLogout}>Logout</Button>
@@ -136,7 +136,7 @@ const Header = () => {
                     <div className="py-2 text-sm font-medium text-center text-muted-foreground">
                       Welcome, <span className="text-foreground">{user.name}</span>
                     </div>
-                    <Link to={user.role === 'mechanic' ? "/mechanic-dashboard" : "/user-dashboard"} onClick={() => setIsMenuOpen(false)}>
+                    <Link to={user.role === 'mechanic' ? "/mechanic-dashboard" : "/dashboard"} onClick={() => setIsMenuOpen(false)}>
                       <Button variant="hero" className="w-full">Dashboard</Button>
                     </Link>
                     <Button variant="outline" className="w-full" onClick={() => { handleLogout(); setIsMenuOpen(false); }}>Logout</Button>

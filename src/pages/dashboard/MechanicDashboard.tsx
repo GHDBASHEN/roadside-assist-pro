@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import Map from "@/components/Map";
 import EditProfileModal from "@/components/EditProfileModal";
 import Chat from "@/components/Chat";
 import { getRoute } from "@/lib/routing";
+import { socket } from "@/lib/socket";
 
 const MechanicDashboard = () => {
     const navigate = useNavigate();
@@ -24,6 +25,39 @@ const MechanicDashboard = () => {
     const [showChat, setShowChat] = useState(false);
     const [chatReceiverId, setChatReceiverId] = useState<string | null>(null);
     const [route, setRoute] = useState<[number, number][] | undefined>(undefined);
+
+    // Track showChat state
+    const showChatRef = useRef(showChat);
+    useEffect(() => {
+        showChatRef.current = showChat;
+    }, [showChat]);
+
+    // Socket listener
+    useEffect(() => {
+        if (!mechanicData?._id) return;
+        const userId = mechanicData._id;
+
+        const joinRoom = () => { socket.emit('join', { userId }); };
+        if (socket.connected) joinRoom();
+        socket.on('connect', joinRoom);
+
+        const handleMessage = (msg: { senderId: string, text: string }) => {
+            if (msg.senderId === userId) return;
+
+            if (!showChatRef.current) {
+                const audio = new Audio('/notificationsound.wav');
+                audio.play().catch(e => console.error("Error playing sound:", e));
+                setChatReceiverId(msg.senderId);
+                setShowChat(true);
+            }
+        };
+
+        socket.on('message', handleMessage);
+        return () => {
+            socket.off('connect', joinRoom);
+            socket.off('message', handleMessage);
+        };
+    }, [mechanicData?._id]);
 
     // Calculate route to active user
     useEffect(() => {

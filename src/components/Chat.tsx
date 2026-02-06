@@ -7,19 +7,24 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 
 // Construct socket URL dynamically to support network access
-const socketUrl = import.meta.env.VITE_API_URL
-    ? import.meta.env.VITE_API_URL.replace('/api', '')
-    : 'http://localhost:5000';
-
-const socket = io(socketUrl, {
-    transports: ['websocket', 'polling'], // Add this to ensure better compatibility
-    withCredentials: false
-});
+import { socket } from '@/lib/socket';
 
 const Chat = ({ userId, receiverId, onClose }: { userId: string, receiverId: string, onClose: () => void }) => {
     const [messages, setMessages] = useState<{ senderId: string, text: string }[]>([]);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Notification sound from public folder
+    const notificationSound = '/notificationsound.wav';
+
+    const playNotificationSound = () => {
+        try {
+            const audio = new Audio(notificationSound);
+            audio.play().catch(e => console.error("Error playing sound:", e));
+        } catch (error) {
+            console.error("Audio playback failed", error);
+        }
+    };
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -65,6 +70,7 @@ const Chat = ({ userId, receiverId, onClose }: { userId: string, receiverId: str
             // Ignore own messages (handled optimistically)
             if (message.senderId === userId) return;
 
+            playNotificationSound();
             setMessages((prev) => [...prev, message]);
         };
 

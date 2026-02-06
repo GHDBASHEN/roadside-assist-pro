@@ -4,7 +4,7 @@ import Map from "@/components/Map";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import Chat from "@/components/Chat";
 import GPSImporter from "@/components/GPSImporter";
@@ -15,6 +15,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { getRoute } from "@/lib/routing";
+import { socket } from "@/lib/socket";
 
 const UserDashboard = () => {
     const navigate = useNavigate();
@@ -29,6 +30,46 @@ const UserDashboard = () => {
     const [isEditingLocation, setIsEditingLocation] = useState(false); // Map lock state
     const [showChat, setShowChat] = useState(false);
     const [route, setRoute] = useState<[number, number][] | undefined>(undefined);
+
+    // Track showChat state for socket listener
+    const showChatRef = useRef(showChat);
+    useEffect(() => {
+        showChatRef.current = showChat;
+    }, [showChat]);
+
+    // Socket listener for incoming messages to auto-open chat
+    useEffect(() => {
+        if (!userData?._id) return;
+
+        const userId = userData._id;
+        const joinRoom = () => {
+            socket.emit('join', { userId });
+        };
+
+        if (socket.connected) joinRoom();
+        socket.on('connect', joinRoom);
+
+        const handleMessage = (msg: { senderId: string, text: string }) => {
+            if (msg.senderId === userId) return;
+
+            // If chat is closed, open it and play sound
+            // Note: If chat is open, the Chat component handles the sound
+            if (!showChatRef.current) {
+                const audio = new Audio('/notificationsound.wav');
+                audio.play().catch(e => console.error("Error playing sound:", e));
+                setSelectedMechanic(msg.senderId);
+                setShowChat(true);
+            }
+        };
+
+        socket.on('message', handleMessage);
+
+        return () => {
+            socket.off('connect', joinRoom);
+            socket.off('message', handleMessage);
+        };
+    }, [userData?._id]);
+
 
     useEffect(() => {
         const fetchInitialData = async () => {

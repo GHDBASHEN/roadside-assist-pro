@@ -57,8 +57,6 @@ const UserDashboard = () => {
         const handleMessage = (msg: { senderId: string, text: string }) => {
             if (msg.senderId === userId) return;
 
-            // If chat is closed, open it and play sound
-            // Note: If chat is open, the Chat component handles the sound
             if (!showChatRef.current) {
                 const audio = new Audio('/notificationsound.wav');
                 audio.play().catch(e => console.error("Error playing sound:", e));
@@ -79,14 +77,11 @@ const UserDashboard = () => {
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                // Fetch User Profile for Location
                 const userRes = await api.get('/auth');
                 setUserData(userRes.data);
                 if (userRes.data?.location?.coordinates) {
                     setCenter([userRes.data.location.coordinates[1], userRes.data.location.coordinates[0]]);
                 }
-
-                // Fetch Bookings
                 fetchBookings();
             } catch (err) {
                 console.error("Failed to fetch initial data", err);
@@ -139,19 +134,18 @@ const UserDashboard = () => {
 
         setLoading(true);
         try {
-            // Pass current center as location. In real app, this should be device GPS
             await api.post('/bookings', {
                 serviceType,
                 location: { latitude: center[0], longitude: center[1] },
                 description: description || `Need help with ${serviceType}`,
-                mechanicId: selectedMechanic, // Optional: target specific mechanic
+                mechanicId: selectedMechanic,
                 vehicle: selectedVehicle
             });
             toast.success(selectedMechanic ? "Request sent to mechanic!" : `Request for ${serviceType} sent!`);
             setSelectedMechanic(null);
-            setDescription(""); // Reset description
+            setDescription("");
             fetchBookings();
-            setIsMobileMenuOpen(false); // Close menu on mobile after request
+            setIsMobileMenuOpen(false);
         } catch (err: any) {
             console.error(err);
             if (err.response && err.response.status === 429) {
@@ -167,7 +161,6 @@ const UserDashboard = () => {
     const handleLocationUpdate = async (location: { latitude: number; longitude: number }) => {
         setCenter([location.latitude, location.longitude]);
 
-        // Push location to server for tracking
         try {
             await api.put('/users/location', {
                 latitude: location.latitude,
@@ -189,15 +182,10 @@ const UserDashboard = () => {
     // Calculate route to mechanic if booking is accepted
     useEffect(() => {
         const fetchRoute = async () => {
-            const acceptedBooking = bookings.find(b => b.status === 'accepted' || b.status === 'pending'); // Show for pending too regarding mechanic showing? No only accepted usually.
-            // Let's only show for accepted for now as per requirement "mechanic accept the job"
-
             const activeBooking = bookings.find(b => b.status === 'accepted' && b.mechanic && b.mechanic.location);
 
             if (activeBooking && center) {
                 const mechLoc = activeBooking.mechanic.location.coordinates;
-                // mechLoc is [lng, lat], center is [lat, lng]
-                // getRoute expects [lat, lng]
                 const routePoints = await getRoute(center, [mechLoc[1], mechLoc[0]]);
                 setRoute(routePoints);
             } else {
@@ -243,44 +231,63 @@ const UserDashboard = () => {
         bookings.filter(b => ['completed', 'cancelled'].includes(b.status)),
         [bookings]);
 
+    // Helper utility to calculate ETA dynamically using geolib
+    const calculateETA = (mechanicLocation: any) => {
+        if (!mechanicLocation?.coordinates || !center) return null;
+
+        // coordinates are structured as [longitude, latitude] in GeoJSON
+        const distanceMeters = getDistance(
+            { latitude: center[0], longitude: center[1] },
+            { latitude: mechanicLocation.coordinates[1], longitude: mechanicLocation.coordinates[0] }
+        );
+
+        // Assume an average urban velocity of 40 km/h -> ~666 meters per minute
+        const minutes = Math.max(1, Math.round(distanceMeters / 666));
+        return minutes;
+    };
+
     // Reusable Sidebar Content
     const SidebarContent = () => (
         <div className="flex flex-col gap-4 h-full">
-            {/* Active Request Card - Prominent at Top */}
+            {/* Active Request Card */}
             {activeBookings.length > 0 && (
                 <div className="bg-gradient-to-r from-primary/20 to-orange-400/10 border-l-4 border-primary p-4 rounded-r-lg shadow-sm animate-in slide-in-from-left">
                     <h3 className="font-bold text-primary flex items-center justify-between">
                         Current Request
                         <Badge className="bg-primary animate-pulse">Live</Badge>
                     </h3>
-                    {activeBookings.map(b => (
-                        <div key={b._id} className="mt-3">
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="font-semibold text-lg">{b.serviceType}</span>
-                                <Badge variant="outline" className="capitalize">{b.status}</Badge>
+                    {activeBookings.map(b => {
+                        const etaMinutes = calculateETA(b.mechanic?.location);
+
+                        return (
+                            <div key={b._id} className="mt-3">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="font-semibold text-lg">{b.serviceType}</span>
+                                    <Badge variant="outline" className="capitalize">{b.status}</Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground mb-2">{b.description || "No description provided."}</p>
+
+                                {b.mechanic ? (
+                                    <div className="bg-background/50 p-2 rounded text-sm flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                        <span>Mechanic: <strong>{b.mechanic.name}</strong> is on the way!</span>
+                                    </div>
+                                ) : (
+                                    <div className="bg-background/50 p-2 rounded text-sm flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></div>
+                                        <span className="italic">Finding nearby mechanics...</span>
+                                    </div>
+                                )}
+
+                                {/* Real-time Dynamic Route / ETA Info */}
+                                {b.status === 'accepted' && etaMinutes !== null && (
+                                    <div className="mt-2 text-xs text-primary font-medium">
+                                        🚗 Mechanic is approx. {etaMinutes} {etaMinutes === 1 ? 'min' : 'mins'} away
+                                    </div>
+                                )}
                             </div>
-                            <p className="text-sm text-muted-foreground mb-2">{b.description || "No description provided."}</p>
-
-                            {b.mechanic ? (
-                                <div className="bg-background/50 p-2 rounded text-sm flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                    <span>Mechanic: <strong>{b.mechanic.name}</strong> is on the way!</span>
-                                </div>
-                            ) : (
-                                <div className="bg-background/50 p-2 rounded text-sm flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></div>
-                                    <span className="italic">Finding nearby mechanics...</span>
-                                </div>
-                            )}
-
-                            {/* Route info if applicable */}
-                            {b.status === 'accepted' && route && (
-                                <div className="mt-2 text-xs text-primary font-medium">
-                                    🚗 Mechanic is approx. {Math.round((route[0] ? 5 : 10))} mins away
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
@@ -308,7 +315,7 @@ const UserDashboard = () => {
                 currentLocation={{ latitude: center[0], longitude: center[1] }}
             />
 
-            {/* Nearby Mechanics List - Hide if active request exists to reduce clutter? OR keep for info? Let's keep.*/}
+            {/* Nearby Mechanics List */}
             <Card className="bg-card/80 backdrop-blur border-border/50 shadow-lg flex-shrink-0">
                 <CardHeader className="pb-2">
                     <CardTitle className="text-lg text-foreground flex justify-between items-center">
@@ -353,7 +360,7 @@ const UserDashboard = () => {
                 </CardContent>
             </Card>
 
-            {/* Request Form - Disable or hide if active request? Let's keep but maybe disable if there is a pending one to prevent duplicates? For now, allow multiple as per potential requirement, or just user choice. */}
+            {/* Request Form */}
             <Card className="bg-card/80 backdrop-blur border-border/50 shadow-lg flex-shrink-0">
                 <CardHeader>
                     <CardTitle className="text-foreground">Request Assistance</CardTitle>
@@ -552,18 +559,15 @@ const UserDashboard = () => {
             />
 
             <div className="flex flex-1 overflow-hidden relative">
-                {/* Background Effects */}
                 <div className="absolute inset-0 pointer-events-none z-0">
                     <div className="absolute inset-0 bg-gradient-hero opacity-50" />
                     <div className="absolute top-0 left-0 w-full h-[500px] bg-primary/5 blur-[100px] opacity-20" />
                 </div>
 
-                {/* Sidebar Controls (Desktop) */}
                 <aside className="hidden md:flex w-96 p-4 bg-card/50 backdrop-blur-sm border-r border-border/50 overflow-y-auto z-10 flex-col gap-4 shadow-xl">
                     {SidebarContent()}
                 </aside>
 
-                {/* Map Area */}
                 <main className="flex-1 relative flex flex-col z-0">
                     <div className="flex-1 relative shadow-inner">
                         <ErrorBoundary>
@@ -574,12 +578,10 @@ const UserDashboard = () => {
                                 enableLocationSelection={isEditingLocation}
                                 route={route}
                                 onMarkerClick={(id) => {
-                                    // Check if it's an available mechanic
                                     const mechanic = availableMechanics.find(m => m._id === id);
                                     if (mechanic) {
                                         setSelectedMechanic(mechanic._id);
                                         toast.info(`Selected mechanic: ${mechanic.name}`);
-                                        // On mobile, maybe open the sheet?
                                         if (window.innerWidth < 768) {
                                             setIsMobileMenuOpen(true);
                                         }
@@ -590,7 +592,6 @@ const UserDashboard = () => {
                     </div>
                 </main>
             </div>
-            {/* Chat overlay */}
             {showChat && selectedMechanic && userData?._id && (
                 <Chat
                     userId={userData._id}
